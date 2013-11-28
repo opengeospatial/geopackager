@@ -1,0 +1,1 @@
+libsqlitejdbc.so needs to be placed in /usr/lib/

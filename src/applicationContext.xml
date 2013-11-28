@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	    xsi:schemaLocation="
+		     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd ">
+
+	<bean id="geoPackagerEntryPoint" class="net.compusult.geopackage.service.GeoPackagerApplication" scope="prototype">
+		<property name="router" ref="geoPackagerRouter" />
+		<property name="statusService">
+		    <bean class="net.compusult.geopackage.service.GeoPackagerStatusService" />
+		</property>
+	</bean>
+	
+	<bean id="geoPackagerRouter" class="org.restlet.ext.spring.SpringRouter">
+	    <property name="attachments">
+	        <map>
+	            
+	            <entry key="/wps">												<!-- POST -->
+	                <bean class="org.restlet.ext.spring.SpringFinder">
+	                    <lookup-method name="create" bean="mainWpsResource" />
+	                </bean>
+	            </entry>
+
+	            <entry key="/wps/status/{processId}">							<!-- GET -->
+	                <bean class="org.restlet.ext.spring.SpringFinder">
+	                    <lookup-method name="create" bean="wpsStatusResource" />
+	                </bean>
+	            </entry>
+	            
+	            <entry key="/features/txn">										<!-- POST -->
+	                <bean class="org.restlet.ext.spring.SpringFinder">
+	                    <lookup-method name="create" bean="startTransactionResource" />
+	                </bean>
+	            </entry>
+	            
+	            <entry key="/features/txn/{txnId}">								<!-- PUT for commit, DELETE for abort -->
+	                <bean class="org.restlet.ext.spring.SpringFinder">
+	                    <lookup-method name="create" bean="completeTransactionResource" />
+	                </bean>
+	            </entry>
+
+	            <entry key="/features/txn/{txnId}/{featureType}">				<!-- POST -->
+	                <bean class="org.restlet.ext.spring.SpringFinder">
+	                    <lookup-method name="create" bean="createFeatureResource" />
+	                </bean>
+	            </entry>
+	            
+	            <entry key="/features/txn/{txnId}/{featureType}/{featureId}">	<!-- PUT for update, DELETE for delete -->
+	                <bean class="org.restlet.ext.spring.SpringFinder">
+	                    <lookup-method name="create" bean="modifyFeatureResource" />
+	                </bean>
+	            </entry>
+
+	        </map>
+        </property>
+    </bean>
+	
+	<bean id="mainWpsResource" class="net.compusult.geopackage.service.resource.MainWPSResource" scope="prototype">
+	    <property name="packagerPool" ref="geoPackagingPool" />
+    </bean>
+	<bean id="wpsStatusResource" class="net.compusult.geopackage.service.resource.WPSStatusResource" scope="prototype">
+	    <property name="packagerPool" ref="geoPackagingPool" />
+    </bean>
+
+	<bean id="startTransactionResource" class="net.compusult.geopackage.service.resource.StartTransactionResource" scope="prototype" />
+	<bean id="completeTransactionResource" class="net.compusult.geopackage.service.resource.CompleteTransactionResource" scope="prototype" />
+	<bean id="createFeatureResource" class="net.compusult.geopackage.service.resource.CreateFeatureResource" scope="prototype" />
+	<bean id="modifyFeatureResource" class="net.compusult.geopackage.service.resource.ModifyFeatureResource" scope="prototype" />
+
+	<bean id="geoPackagingPool" class="net.compusult.geopackage.service.geopackager.GeoPackagingPool">
+	    <property name="workDirectory" value="/var/lib/geopackager" />
+	    
+   		<property name="executor">
+			<!-- See http://www.bigsoft.co.uk/blog/index.php/2009/11/27/rules-of-a-threadpoolexecutor-pool-size -->
+			<bean class="java.util.concurrent.ThreadPoolExecutor">
+				<!-- corePoolSize -->
+				<constructor-arg index="0" value="8"/>
+				
+				<!-- maximumPoolSize -->
+				<constructor-arg index="1" value="20"/>
+				
+				<!-- keepAliveTime and units -->
+				<constructor-arg index="2" value="60"/>
+				<constructor-arg index="3" value="#{ T(java.util.concurrent.TimeUnit).SECONDS }"/>
+				
+				<!-- workQueue -->
+				<constructor-arg index="4">
+					<bean class="java.util.concurrent.ArrayBlockingQueue">
+						<constructor-arg value="10" />
+					</bean>
+				</constructor-arg>
+			</bean>
+		</property>
+		
+	</bean>
+	
+</beans>

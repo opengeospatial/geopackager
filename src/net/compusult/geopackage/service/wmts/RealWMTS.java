@@ -225,8 +225,9 @@ public class RealWMTS extends TileServer {
 	@Override
 	public String getCRS() {
 		String crs = layerInfo.getCrs();
-		if (crs.startsWith("urn:ogc:def:crs:EPSG::")) {
-			crs = crs.substring(22);
+		if (crs.startsWith("urn:ogc:def:crs:EPSG:")) {
+			String[] pieces = crs.split(":");
+			crs = pieces[pieces.length - 1];
 		}
 		return crs;
 	}

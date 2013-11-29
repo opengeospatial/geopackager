@@ -66,7 +66,7 @@ public class GeoPackagerStatusService extends StatusService {
         if (locator != null) {
         	sb.append(" locator=\"").append(locator).append("\"");
         }
-        sb.append(">");
+        sb.append(">\n");
         sb.append("    <ows:ExceptionText>").append(text);
         if (throwable != null) {
         	sb.append(" - ").append(throwable.getMessage());

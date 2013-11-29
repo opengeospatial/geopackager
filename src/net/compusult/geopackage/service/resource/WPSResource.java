@@ -21,6 +21,7 @@ package net.compusult.geopackage.service.resource;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -34,6 +35,7 @@ import net.compusult.geopackage.service.geopackager.GeoPackagingPool;
 import net.compusult.xml.DOMUtil;
 
 import org.restlet.data.MediaType;
+import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.xml.DomRepresentation;
 import org.restlet.representation.Representation;
@@ -64,11 +66,8 @@ public abstract class WPSResource extends ServerResource {
 	protected static final String IDENT_PASSPHRASE = "Passphrase";
 	protected static final String IDENT_OUTPUT_GPKG = "GeoPackage";
 	
-	protected static final String MIME_TYPE_GPKG = "application/vnd.ogc.gpkg";
-	protected static final String MIME_TYPE_SGPKG = "application/x-sgpkg";
 	
-	
-	protected enum ExceptionCode {
+	public enum ExceptionCode {
 		OperationNotSupported(Status.SERVER_ERROR_NOT_IMPLEMENTED),
 		MissingParameterValue(Status.CLIENT_ERROR_BAD_REQUEST),
 		InvalidParameterValue(Status.CLIENT_ERROR_BAD_REQUEST),
@@ -162,7 +161,6 @@ public abstract class WPSResource extends ServerResource {
 			 * ProcessOutputs is only used when status is ProcessSucceeded.
 			 */
 			Element newProcOutputs = outputDoc.createElementNS(WPS_NS, "ProcessOutputs");
-			
 			Element newOutput = outputDoc.createElementNS(WPS_NS, "Output");
 			
 			identElement = outputDoc.createElementNS(OWS_NS, "Identifier");
@@ -172,13 +170,34 @@ public abstract class WPSResource extends ServerResource {
 			Element newTitle = outputDoc.createElementNS(OWS_NS, "Title");
 			newTitle.setTextContent("GeoPackage created as the result of an OWS Context-based request");
 			newOutput.appendChild(newTitle);
+
+			Element newOutputRef = outputDoc.createElementNS(WPS_NS, "OutputReference");
+			newOutputRef.setAttribute("href", constructRetrievalReference(packager.getId()));
+			newOutput.appendChild(newOutputRef);
 			
 			newProcOutputs.appendChild(newOutput);
 			newRoot.appendChild(newProcOutputs);
 		}
 
 		return new DomRepresentation(MediaType.TEXT_XML, outputDoc);
-
+	}
+	
+	private String constructRetrievalReference(String id) {
+		
+		Reference us = getReference();
+		List<String> segments = us.getSegments();
+		int found = segments.indexOf("wps");
+		if (found < 0) {
+			throw new IllegalStateException("Expected '/wps' in the current request's URL");
+		}
+		
+		StringBuilder buf = new StringBuilder();
+		for (int i = 0; i <= found; ++ i) {
+			buf.append('/').append(segments.get(i));
+		}
+		buf.append("/gpkg/").append(id);
+		
+		return Reference.toString(us.getScheme(), us.getHostDomain(), us.getHostPort(), buf.toString(), null, null);
 	}
 
 	protected Element createStatusElement(Document doc, GeoPackager packager) {

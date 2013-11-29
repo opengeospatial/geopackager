@@ -35,19 +35,25 @@
 	    <property name="attachments">
 	        <map>
 	            
-	            <entry key="/wps">												<!-- POST -->
-	                <bean class="org.restlet.ext.spring.SpringFinder">
-	                    <lookup-method name="create" bean="mainWpsResource" />
-	                </bean>
-	            </entry>
-
 	            <entry key="/wps/status/{processId}">							<!-- GET -->
 	                <bean class="org.restlet.ext.spring.SpringFinder">
 	                    <lookup-method name="create" bean="wpsStatusResource" />
 	                </bean>
 	            </entry>
 	            
-	            <entry key="/features/txn">										<!-- POST -->
+	            <entry key="/wps/gpkg/{id}">									<!-- GET -->
+	                <bean class="org.restlet.ext.spring.SpringFinder">
+	                    <lookup-method name="create" bean="gpkgRetrievalResource" />
+	                </bean>
+	            </entry>
+	            
+	            <entry key="/wps">												<!-- POST -->
+	                <bean class="org.restlet.ext.spring.SpringFinder">
+	                    <lookup-method name="create" bean="mainWpsResource" />
+	                </bean>
+	            </entry>
+
+				<entry key="/features/txn">										<!-- POST -->
 	                <bean class="org.restlet.ext.spring.SpringFinder">
 	                    <lookup-method name="create" bean="startTransactionResource" />
 	                </bean>
@@ -79,6 +85,9 @@
 	    <property name="packagerPool" ref="geoPackagingPool" />
     </bean>
 	<bean id="wpsStatusResource" class="net.compusult.geopackage.service.resource.WPSStatusResource" scope="prototype">
+	    <property name="packagerPool" ref="geoPackagingPool" />
+    </bean>
+	<bean id="gpkgRetrievalResource" class="net.compusult.geopackage.service.resource.GeoPackageRetrievalResource" scope="prototype">
 	    <property name="packagerPool" ref="geoPackagingPool" />
     </bean>
 

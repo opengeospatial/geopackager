@@ -38,6 +38,9 @@ public class GeoPackager implements Runnable {
 	
 	private static final Logger LOG = Logger.getLogger(GeoPackager.class);
 	
+	public static final String MIME_TYPE_GPKG = "application/vnd.ogc.gpkg";
+	public static final String MIME_TYPE_SGPKG = "application/x-sgpkg";
+	
 	public enum ProcessingStatus {
 		ACCEPTED("ProcessAccepted", false),
 		STARTED("ProcessStarted", false),
@@ -77,6 +80,7 @@ public class GeoPackager implements Runnable {
 	private ProcessingStatus currentStatus;
 	private ProgressTracker progressTracker;
 	private ContextDoc resultingContext;
+	private String fileName;
 	
 	public GeoPackager(ContextDoc owsContext, String passPhrase) {
 		this.owsContext = owsContext;
@@ -85,6 +89,7 @@ public class GeoPackager implements Runnable {
 		this.resultingContext = null;
 		this.currentStatus = ProcessingStatus.ACCEPTED;
 		this.progressTracker = null;
+		this.fileName = null;
 	}
 
 	public void setStoreGeoPackageAsReference(boolean asReference) {
@@ -135,6 +140,10 @@ public class GeoPackager implements Runnable {
 		this.workDirectory = workDirectory;
 	}
 
+	public String getFileName() {
+		return fileName;
+	}
+
 	public ContextDoc getResultingContext() {
 		return resultingContext;
 	}
@@ -155,13 +164,18 @@ public class GeoPackager implements Runnable {
 		return (progressTracker == null) ? 0 : progressTracker.getPercentComplete();
 	}
 
+	public boolean isSecure() {
+		return secure;
+	}
+
 	@Override
 	public void run() {
 		setCurrentStatus(ProcessingStatus.STARTED);
 		
 		boolean succeeded = false;
 		try {
-			File gpkgFile = new File(workDirectory, id + "." + (secure ? "s" : "") + "gpkg");
+			fileName = id + "." + (secure ? "s" : "") + "gpkg";
+			File gpkgFile = new File(workDirectory, fileName);
 			GeoPackage gpkg = new GeoPackage(gpkgFile, passPhrase.toCharArray());
 			
 			List<ResourceOffering> resourceOfferings = new ArrayList<ResourceOffering>();

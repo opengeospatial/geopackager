@@ -24,6 +24,7 @@ import java.util.List;
 
 import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.geopackage.service.model.GeoPackage;
+import net.compusult.owscontext.KMLOffering;
 import net.compusult.owscontext.Simple3857TilesOffering;
 import net.compusult.owscontext.ContextDoc;
 import net.compusult.owscontext.Offering;
@@ -69,7 +70,9 @@ public class GeoPackager implements Runnable {
 	private final String passPhrase;
 	private final boolean secure;
 	
+	@SuppressWarnings("unused")
 	private boolean storeGeoPackageAsReference;
+	@SuppressWarnings("unused")
 	private boolean storeOWSContextAsReference;
 	private boolean includeLineage;
 	private Element dataInputs;
@@ -205,6 +208,9 @@ public class GeoPackager implements Runnable {
 					} else if (offering instanceof Simple3857TilesOffering) {
 						chosenOffering = offering;
 						break;
+					} else if (offering instanceof KMLOffering) {
+						chosenOffering = offering;
+						break;
 					} else if (offering instanceof WFSOffering) {
 						chosenOffering = offering;
 						// no break;
@@ -241,6 +247,7 @@ public class GeoPackager implements Runnable {
 			if (successfulLayers == 0) {
 				LOG.warn("No layers were successfully imported into the GeoPackage");
 			} else {
+				LOG.info("Successfully imported " + successfulLayers + " layer(s) into the GeoPackage");
 				succeeded = true;
 			}
 		

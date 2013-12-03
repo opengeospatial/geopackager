@@ -19,8 +19,10 @@
 package net.compusult.geopackage.service.geopackager;
 
 import net.compusult.geopackage.service.GeoPackageException;
+import net.compusult.owscontext.KMLOffering;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Simple3857TilesOffering;
+import net.compusult.owscontext.WFSOffering;
 import net.compusult.owscontext.WMTSOffering;
 
 public class HarvesterFactory {
@@ -38,7 +40,10 @@ public class HarvesterFactory {
 			
 		} else if (offering instanceof Simple3857TilesOffering) {
 			return new Simple3857TileHarvester(progressTracker);
-			
+
+		} else if (offering instanceof KMLOffering) {
+			return new KMLHarvester(progressTracker);
+
 //		} else if (offering instanceof WFSOffering) {
 //			return new WFSHarvester(progressTracker);
 		}

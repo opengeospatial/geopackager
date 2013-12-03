@@ -22,7 +22,7 @@ public class FeatureColumnInfo {
 	
 	// Valid concrete subtypes of Geometry, per SpatiaLite
 	public static final String[] GEOM_TYPES = {
-		"POINT", "LINESTRING", "POLYGON", "MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON", "GEOMETRYCOLLECTION"
+		"POINT", "LINESTRING", "POLYGON", "MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON", "GEOMETRYCOLLECTION", "GEOMETRY"
 	};
 	
 	public enum ColumnType {

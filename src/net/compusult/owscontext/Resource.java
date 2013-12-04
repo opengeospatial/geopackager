@@ -28,6 +28,7 @@ import org.w3c.dom.Node;
 
 public class Resource {
 
+	private final ContextDoc context;
 	private String id;
 	private TypedText title;
 	private TypedText abstrakt;
@@ -49,7 +50,8 @@ public class Resource {
 	private String folderLabel;
 	private final List<Node> extensions;
 	
-	public Resource() {
+	public Resource(ContextDoc context) {
+		this.context = context;
 		this.updateDate = new Date();
 		this.authors = new ArrayList<AuthorInfo>();
 		this.contentByRefs = new ArrayList<TypedLink>();
@@ -57,6 +59,10 @@ public class Resource {
 		this.active = true;
 		this.keywords = new HashSet<CategorizedTerm>();
 		this.extensions = new ArrayList<Node>();
+	}
+
+	public ContextDoc getContext() {
+		return context;
 	}
 
 	public String getId() {

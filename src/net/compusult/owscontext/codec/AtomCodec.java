@@ -653,7 +653,7 @@ public class AtomCodec implements OWSContextCodec {
 		 * at the top level.
 		 */
 		if ("entry".equalsIgnoreCase(feed.getLocalName())) {
-			context.getResources().add(decodeResource(feed));
+			context.getResources().add(decodeResource(feed, context));
 			return context;
 		}
 		
@@ -718,7 +718,7 @@ public class AtomCodec implements OWSContextCodec {
 					context.getKeywords().add(new CategorizedTerm(scheme, term, label));
 					handled = true;
 				} else if ("entry".equals(local)) {
-					context.getResources().add(decodeResource(child));
+					context.getResources().add(decodeResource(child, context));
 					handled = true;
 				}
 
@@ -773,8 +773,8 @@ public class AtomCodec implements OWSContextCodec {
 		return context;
 	}
 	
-	private Resource decodeResource(Element entry) throws EncodingException {
-		Resource resource = new Resource();
+	private Resource decodeResource(Element entry, ContextDoc context) throws EncodingException {
+		Resource resource = new Resource(context);
 		
 		for (Element child : dom.findChildElements(entry)) {
 			boolean handled = false;

@@ -18,34 +18,38 @@
    
 package net.compusult.owscontext.codec;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 import net.compusult.geometry.gml.GMLConverterInterface;
 
 
 public class OWSContextCodecFactory {
 
-	private static final OWSContextCodecFactory INSTANCE = new OWSContextCodecFactory();
-	
-	public static OWSContextCodecFactory getInstance() {
-		return INSTANCE;
-	}
-	
 	private GMLConverterInterface gmlConverter;
 	
-	public static void setGMLConverter(GMLConverterInterface gmlConverter) {
-		INSTANCE.gmlConverter = gmlConverter;
+	// This is only strictly required with the Atom codec
+	@Autowired(required = false)
+	public void setGMLConverter(GMLConverterInterface gmlConverter) {
+		this.gmlConverter = gmlConverter;
 	}
 	
 	public AtomCodec createAtomCodec() {
+		if (gmlConverter == null) {
+			throw new IllegalStateException("gmlConverter has not been initialized for the OWS Context AtomCodec");
+		}
 		return new AtomCodec(gmlConverter);
 	}
 	
 	public OWSContextCodec createJSONCodec() {
+//		return new JSONCodec();
 		return null;
 	}
 	
 	public OWSContextCodec createCodec(String mimeType) {
 		if (AtomCodec.MIME_TYPE.equals(mimeType)) {
-			return new AtomCodec(gmlConverter);
+			return createAtomCodec();
+//		} else if (JSONCodec.MIME_TYPE.equals(mimeType)) {
+//			return createJSONCodec();
 		} else {
 			return null;
 		}

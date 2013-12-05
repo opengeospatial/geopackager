@@ -49,6 +49,7 @@ public class MainWPSResource extends WPSResource {
 	
 	@Autowired private ApplicationContext applicationContext;
 	@Autowired private TemplateManager templateManager;
+	@Autowired private OWSContextCodecFactory contextCodecFactory;
 	
 	public MainWPSResource() {
 		super();
@@ -302,8 +303,8 @@ public class MainWPSResource extends WPSResource {
 		/*
 		 * Decode the OWS Context document payload of this input.
 		 */
-		OWSContextCodecFactory.setGMLConverter(new JTSGMLConverter());
-		AtomCodec contextCodec = OWSContextCodecFactory.getInstance().createAtomCodec();
+		contextCodecFactory.setGMLConverter(new JTSGMLConverter());
+		AtomCodec contextCodec = contextCodecFactory.createAtomCodec();
 		// Either a <feed> or <entry> element will be at the top level of the input
 		Element feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "feed");
 		if (feedElement == null) {
@@ -339,6 +340,10 @@ public class MainWPSResource extends WPSResource {
 
 	public void setTemplateManager(TemplateManager templateManager) {
 		this.templateManager = templateManager;
+	}
+
+	public void setContextCodecFactory(OWSContextCodecFactory contextCodecFactory) {
+		this.contextCodecFactory = contextCodecFactory;
 	}
 
 }

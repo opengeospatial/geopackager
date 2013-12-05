@@ -128,6 +128,12 @@
 	<bean class="org.osgeo.proj4j.CRSFactory" />
 	<bean class="org.osgeo.proj4j.CoordinateTransformFactory" />
 	
+	<!-- Singleton -->
+	<bean class="net.compusult.owscontext.codec.OWSContextCodecFactory" />
+	
+	<!-- Used for reading and writing OWS Context (Atom format) -->
+	<bean class="net.compusult.geometry.JTSGMLConverter" />
+	
 	<!-- Harvesters (one created per layer being processed) -->
 	<bean id="realWMTSHarvester"   class="net.compusult.geopackage.service.geopackager.RealWMTSHarvester"       scope="prototype" />
 	<bean id="simple3857Harvester" class="net.compusult.geopackage.service.geopackager.Simple3857TileHarvester" scope="prototype" />

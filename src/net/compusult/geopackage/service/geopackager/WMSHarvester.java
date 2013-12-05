@@ -1,5 +1,5 @@
 /*
- * Simple3857TileHarvester.java
+ * WMSHarvester.java
  * 
  * Copyright 2013, Compusult Ltd.
  *
@@ -24,33 +24,69 @@ import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.geopackage.service.model.LayerInformation;
 import net.compusult.geopackage.service.model.LayerInformation.Type;
-import net.compusult.geopackage.service.wmts.Simple3857TileServer;
 import net.compusult.geopackage.service.wmts.TileServer;
+import net.compusult.geopackage.service.wmts.TiledWMS;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Operation;
 import net.compusult.owscontext.Resource;
 
-public class Simple3857TileHarvester extends AbstractWMTSHarvester {
+import org.restlet.data.Form;
+import org.restlet.data.Reference;
 
-	public Simple3857TileHarvester(ProgressTracker progressTracker) {
+import com.vividsolutions.jts.geom.Envelope;
+
+public class WMSHarvester extends AbstractWMTSHarvester {
+	
+	public WMSHarvester(ProgressTracker progressTracker) {
 		super(progressTracker);
 	}
 	
 	@Override
 	public void harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
 
-		Operation getTile = findRequiredOperation(offering, "GetTile");
+		Operation getMap = findRequiredOperation(offering, "GetMap");
 		
 		Map<String, String> params = parseParameters(offering);
 		
-		TileServer server = new Simple3857TileServer(getTile.getRequestURL(), getTile.getType(), params);
+		Reference getMapRequest = new Reference(getMap.getRequestURL());
+		
+		Form query = getMapRequest.getQueryAsForm(true);
+		String srs = query.getFirstValue("SRS");
+		
+		Envelope rect;
+		String bboxStr = query.getFirstValue("BBOX", "");
+		String[] pieces = bboxStr.split(",");
+		if (pieces.length == 4) {
+			// specified bounding box
+			rect = new Envelope(
+						Double.parseDouble(pieces[0]),
+						Double.parseDouble(pieces[2]),
+						Double.parseDouble(pieces[1]),
+						Double.parseDouble(pieces[3])
+					);
+			if (srs.startsWith("EPSG:")) {
+				srs = srs.substring(5);
+			}
+		} else {
+			// use extents given in a georss:where clause
+			srs = "4326";
+			rect = selectEnvelope(resource);
+		}
+		
+		String requestedTileFormat = query.getFirstValue("FORMAT", "image/png");
+		
+		if (params.get("fromMatrix") == null && params.get("toMatrix") == null) {
+			params.put("fromMatrix", "0");
+			params.put("toMatrix", "0");
+		}
+		TileServer wms = new TiledWMS(getMapRequest, srs, rect, requestedTileFormat, params);
 		
 		LayerInformation layerInfo = new LayerInformation(gpkg, Type.TILES, sanitizeTableName(resource.getId()));
 		layerInfo.setTitle(resource.getTitle().getText());
-		layerInfo.setCrs("3857");
+		layerInfo.setCrs(srs);
 		
-		HarvestTiles tileHarvester = new HarvestTiles(gpkg, server, layerInfo, selectEnvelope(resource), params, progressTracker);
+		HarvestTiles tileHarvester = new HarvestTiles(gpkg, wms, layerInfo, null, params, progressTracker);
 		tileHarvester.harvestTiles();
 	}
-	
+
 }

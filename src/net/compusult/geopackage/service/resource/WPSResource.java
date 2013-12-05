@@ -223,7 +223,7 @@ public abstract class WPSResource extends ServerResource {
 			newProcStatus.setTextContent("GeoPackaging request has been completed");
 			break;
 		case FAILED:
-			newProcStatus.setTextContent("GeoPackaging request has been accepted for processing");
+			newProcStatus.setTextContent("GeoPackaging request has failed");
 			break;
 		}
 		newStatus.appendChild(newProcStatus);

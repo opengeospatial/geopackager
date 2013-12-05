@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
- * DatabaseColumnInfo.java
+ * applicationContext.xml
  * 
  * Copyright 2013, Compusult Ltd.
  *
@@ -17,13 +17,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 -->
-   
 
 <beans xmlns="http://www.springframework.org/schema/beans"
+    	xmlns:context="http://www.springframework.org/schema/context"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	    xsi:schemaLocation="
-		     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd ">
+	    	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd ">
 
+    <context:annotation-config />
+    
 	<bean id="geoPackagerEntryPoint" class="net.compusult.geopackage.service.GeoPackagerApplication" scope="prototype">
 		<property name="router" ref="geoPackagerRouter" />
 		<property name="statusService">
@@ -81,21 +84,16 @@
         </property>
     </bean>
 	
-	<bean id="mainWpsResource" class="net.compusult.geopackage.service.resource.MainWPSResource" scope="prototype">
-	    <property name="packagerPool" ref="geoPackagingPool" />
-    </bean>
-	<bean id="wpsStatusResource" class="net.compusult.geopackage.service.resource.WPSStatusResource" scope="prototype">
-	    <property name="packagerPool" ref="geoPackagingPool" />
-    </bean>
-	<bean id="gpkgRetrievalResource" class="net.compusult.geopackage.service.resource.GeoPackageRetrievalResource" scope="prototype">
-	    <property name="packagerPool" ref="geoPackagingPool" />
-    </bean>
+	<bean id="mainWpsResource" class="net.compusult.geopackage.service.resource.MainWPSResource" scope="prototype" />
+	<bean id="wpsStatusResource" class="net.compusult.geopackage.service.resource.WPSStatusResource" scope="prototype" />
+	<bean id="gpkgRetrievalResource" class="net.compusult.geopackage.service.resource.GeoPackageRetrievalResource" scope="prototype" />
 
 	<bean id="startTransactionResource" class="net.compusult.geopackage.service.resource.StartTransactionResource" scope="prototype" />
 	<bean id="completeTransactionResource" class="net.compusult.geopackage.service.resource.CompleteTransactionResource" scope="prototype" />
 	<bean id="createFeatureResource" class="net.compusult.geopackage.service.resource.CreateFeatureResource" scope="prototype" />
 	<bean id="modifyFeatureResource" class="net.compusult.geopackage.service.resource.ModifyFeatureResource" scope="prototype" />
 
+	<!-- Singleton -->
 	<bean id="geoPackagingPool" class="net.compusult.geopackage.service.geopackager.GeoPackagingPool">
 	    <property name="workDirectory" value="/var/lib/geopackager" />
 	    
@@ -121,6 +119,52 @@
 			</bean>
 		</property>
 		
+	</bean>
+
+	<!-- One of these is created per WPS request -->	
+	<bean id="geopackager" class="net.compusult.geopackage.service.geopackager.GeoPackager" scope="prototype" />
+	
+	<!-- Initialize the singleton Proj4J coordinate reference system factory. -->
+	<bean class="org.osgeo.proj4j.CRSFactory" />
+	
+	<!-- Harvesters (one created per layer being processed) -->
+	<bean id="realWMTSHarvester"   class="net.compusult.geopackage.service.geopackager.RealWMTSHarvester"       scope="prototype" />
+	<bean id="simple3857Harvester" class="net.compusult.geopackage.service.geopackager.Simple3857TileHarvester" scope="prototype" />
+	<bean id="kmlHarvester"        class="net.compusult.geopackage.service.geopackager.KMLHarvester"            scope="prototype" />
+	<bean id="wmsHarvester"        class="net.compusult.geopackage.service.geopackager.WMSHarvester"            scope="prototype" />
+<!-- 	<bean id="wfsHarvester"        class="net.compusult.geopackage.service.geopackager.WFSHarvester"            scope="prototype" /> -->
+	
+	<!-- Singleton HarvesterFactory -->
+	<bean class="net.compusult.geopackage.service.geopackager.HarvesterFactory">
+	    <property name="beanNames">
+	        <map>
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wmts"   value="realWMTSHarvester" />
+	            <entry key="http://www.compusult.net/offering/simple-3857-tiles" value="simple3857Harvester" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/kml"    value="kmlHarvester" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wms"    value="wmsHarvester" />
+<!-- 	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wfs"    value="wfsHarvester" /> -->
+   	        </map>
+	    </property>
+	</bean>
+	
+	<!-- Singleton -->
+	<bean class="net.compusult.geopackage.service.resource.helper.TemplateManager">
+	    <property name="contactInfo">
+			<bean class="net.compusult.geopackage.service.resource.helper.ContactInfo">
+				<property name="company"    value="Compusult Ltd." />
+				<property name="url"        value="http://www.compusult.net/" />
+				<property name="name"       value="Sean Hogan" />
+				<property name="title"      value="Project Engineer" />
+				<property name="email"      value="sean@compusult.net" />
+				<property name="voice"      value="+1 709 745-7914" />
+				<property name="fax"        value="+1 709 745-7927" />
+				<property name="addr"       value="40 Bannister Street" />
+				<property name="city"       value="Mount Pearl" />
+				<property name="prov"       value="NL" />
+				<property name="country"    value="Canada" />
+				<property name="postalCode" value="A1N 1W1" />
+		   	</bean>
+	    </property>
 	</bean>
 	
 </beans>

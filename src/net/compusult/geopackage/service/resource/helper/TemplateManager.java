@@ -25,13 +25,12 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
 
+import org.springframework.beans.factory.annotation.Required;
+
+
 public class TemplateManager {
 	
-	private static final TemplateManager INSTANCE = new TemplateManager();
-	
-	public static TemplateManager getInstance() {
-		return INSTANCE;
-	}
+	private ContactInfo contactInfo;
 	
 	public String readTemplate(String name) throws IOException {
 		InputStream is = null;
@@ -62,22 +61,12 @@ public class TemplateManager {
 	}
 	
 	public ContactInfo getContactInfo() {
-		return new ContactInfo();
+		return contactInfo;
 	}
-	
-	public static class ContactInfo {
-		public String company = "Compusult Ltd.";
-		public String url = "http://www.compusult.net/";
-		public String name = "Sean Hogan";
-		public String title = "Project Engineer";
-		public String email = "sean@compusult.net";
-		public String voice = "+1 709 745-7914";
-		public String fax = "+1 709 745-7927";
-		public String addr = "40 Bannister Street";
-		public String city = "Mount Pearl";
-		public String prov = "NL";
-		public String country = "Canada";
-		public String postalCode = "A1N 1W1";
+
+	@Required
+	public void setContactInfo(ContactInfo contactInfo) {
+		this.contactInfo = contactInfo;
 	}
 	
 }

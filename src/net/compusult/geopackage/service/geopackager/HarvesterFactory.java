@@ -18,37 +18,32 @@
    
 package net.compusult.geopackage.service.geopackager;
 
+import java.util.Map;
+
 import net.compusult.geopackage.service.GeoPackageException;
-import net.compusult.owscontext.KMLOffering;
 import net.compusult.owscontext.Offering;
-import net.compusult.owscontext.Simple3857TilesOffering;
-import net.compusult.owscontext.WFSOffering;
-import net.compusult.owscontext.WMTSOffering;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 
 public class HarvesterFactory {
 	
-	private static final HarvesterFactory INSTANCE = new HarvesterFactory();
-	
-	public static HarvesterFactory getInstance() {
-		return INSTANCE;
-	}
+	@Autowired
+	private ApplicationContext applicationContext;
+	private Map<String, String> beanNames;
 	
 	public Harvester createHarvester(Offering offering, ProgressTracker progressTracker) throws GeoPackageException {
 		
-		if (offering instanceof WMTSOffering) {
-			return new RealWMTSHarvester(progressTracker);
-			
-		} else if (offering instanceof Simple3857TilesOffering) {
-			return new Simple3857TileHarvester(progressTracker);
-
-		} else if (offering instanceof KMLOffering) {
-			return new KMLHarvester(progressTracker);
-
-//		} else if (offering instanceof WFSOffering) {
-//			return new WFSHarvester(progressTracker);
+		String beanName = beanNames.get(offering.getOfferingCode());
+		if (beanName == null) {
+			throw new GeoPackageException("Unsupported Offering class " + offering.getClass().getName() + " (" + offering.getOfferingCode() + ")");
 		}
-			
-		throw new GeoPackageException("Unsupported Offering class " + offering.getClass().getName());
+		
+		return (Harvester) applicationContext.getBean(beanName, progressTracker);
+	}
+
+	public void setBeanNames(Map<String, String> beanNames) {
+		this.beanNames = beanNames;
 	}
 
 }

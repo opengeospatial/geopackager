@@ -22,27 +22,50 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
 import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Operation;
+import net.compusult.owscontext.Resource;
 import net.compusult.xml.DOMUtil;
+
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 public abstract class AbstractHarvester implements Harvester {
 
 	protected static final String TESTBED_NS = "http://schemas.compusult.net/ows10/ows-context";
 	protected static final String EXTENSION_PARAM = "parameter";
 	
-	protected ProgressTracker progressTracker;
-	private final DOMUtil domUtil = new DOMUtil();
-	
+	protected final ProgressTracker progressTracker;
+	private final DOMUtil domUtil;
 	
 	protected AbstractHarvester(ProgressTracker progressTracker) {
 		this.progressTracker = progressTracker;
+		this.domUtil = new DOMUtil();
 	}
 	
+	/**
+	 * Determine the Envelope of the AOI expressed or implied by the given Resource.
+	 * 
+	 * @param resource
+	 * @return
+	 */
+	protected Envelope selectEnvelope(Resource resource) {
+		Object result = resource.getGeospatialExtent();
+		if (result == null) {
+			result = (Geometry) resource.getContext().getAreaOfInterest();
+		}
+		if (result == null) {
+			// world extents
+			return new Envelope(-90, -180, 90, 180);
+		} else {
+			return ((Geometry) result).getEnvelopeInternal();
+		}
+	}
+
 	protected Operation findRequiredOperation(Offering offering, String desiredCode) throws GeoPackageException {
 		for (Operation op : offering.getOperations()) {
 			if (desiredCode.equalsIgnoreCase(op.getOperationCode())) {
@@ -81,5 +104,5 @@ public abstract class AbstractHarvester implements Harvester {
 		String value = domUtil.getAttributeValue(parameter, "value");
 		params.put(name,  value);
 	}
-
+	
 }

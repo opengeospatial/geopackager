@@ -32,6 +32,8 @@ import net.compusult.geopackage.service.wmts.TileServer;
 
 import org.apache.log4j.Logger;
 
+import com.vividsolutions.jts.geom.Envelope;
+
 public class HarvestTiles {
 	
 	private static final Logger LOG = Logger.getLogger(HarvestTiles.class);
@@ -42,16 +44,18 @@ public class HarvestTiles {
 	private GeoPackage gpkg;
 	private final TileServer wmts;
 	private final LayerInformation layerInfo;
+	private final Envelope clipRect;
 	private final Map<String, String> params;
 	private final ProgressTracker progressTracker;
 	
 	private int tilesExpected;
 	private int tilesSaved;
 
-	public HarvestTiles(GeoPackage gpkg, TileServer wmts, LayerInformation layerInfo, Map<String, String> params, ProgressTracker progressTracker) {
+	public HarvestTiles(GeoPackage gpkg, TileServer wmts, LayerInformation layerInfo, Envelope clipRect, Map<String, String> params, ProgressTracker progressTracker) {
 		this.gpkg = gpkg;
 		this.wmts = wmts;
 		this.layerInfo = layerInfo;
+		this.clipRect = clipRect;
 		this.params = params;
 		this.progressTracker = progressTracker;
 		
@@ -89,7 +93,9 @@ public class HarvestTiles {
 
 			for (int tileCol = 0; tileCol < matrixWidth; tileCol++) {
 				for (int tileRow = 0; tileRow < matrixHeight; tileRow++) {
-					if (wmts.isTileAvailable(zoomScale, tileRow, tileCol)) {
+					if (wmts.isTileAvailable(zoomScale, tileRow, tileCol) &&
+							overlapsClipRect(zoomScale, tileRow, tileCol, matrixWidth, matrixHeight)) {
+						
 						TileFetcher fetcher = new TileFetcher(tileWriter, zoomScale, tileRow, tileCol, layerIndex);
 						fetcher.fetch();
 					}
@@ -99,6 +105,25 @@ public class HarvestTiles {
 		}
 		
 		tileWriter.finished();
+	}
+	
+	private boolean overlapsClipRect(String zoomScale, int tileRow, int tileCol, int matrixWidth, int matrixHeight) {
+		if (clipRect == null) {
+			return true;
+		}
+		double minx = wmts.getMinX();
+		double miny = wmts.getMinY();
+		double maxx = wmts.getMaxX();
+		double maxy = wmts.getMaxY();
+		double tileWidth  = (maxx - minx) / matrixWidth;
+		double tileHeight = (maxy - miny) / matrixHeight;
+		minx += tileCol * tileWidth;
+		miny = maxy - tileRow * tileHeight;
+		maxx = minx + tileWidth;
+		maxy = miny + tileHeight;
+		
+		Envelope against = new Envelope(minx, miny, maxx, maxy);
+		return clipRect.intersects(against);
 	}
 
 	private void writeMatrixLayerInfo(GeoPackage geopackage, TileServer wmts) throws GeoPackageException {

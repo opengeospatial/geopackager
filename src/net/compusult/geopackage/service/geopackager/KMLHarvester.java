@@ -18,6 +18,7 @@
    
 package net.compusult.geopackage.service.geopackager;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,19 +26,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
 import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.geopackage.service.model.FeatureColumnInfo;
+import net.compusult.geopackage.service.model.FeatureColumnInfo.ColumnType;
 import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.geopackage.service.model.LayerInformation;
-import net.compusult.geopackage.service.model.FeatureColumnInfo.ColumnType;
 import net.compusult.geopackage.service.model.LayerInformation.Type;
 import net.compusult.owscontext.Content;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Resource;
 import net.compusult.xml.DOMUtil;
+import net.compusult.xml.XMLFetcher;
 
 import org.apache.log4j.Logger;
 import org.springframework.util.StringUtils;
@@ -243,11 +242,9 @@ public class KMLHarvester extends AbstractHarvester {
 	}
 	
 	private Document readExternalKML(String url) throws GeoPackageException {
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		try {
-			DocumentBuilder db = dbf.newDocumentBuilder();
-			return db.parse(url);
-		} catch (Exception e) {
+			return new XMLFetcher(url).fetch();
+		} catch (IOException e) {
 			throw new GeoPackageException("Parsing remote KML file at " + url, e);
 		}
 	}

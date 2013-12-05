@@ -24,15 +24,13 @@ import java.util.List;
 
 import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.geopackage.service.model.GeoPackage;
-import net.compusult.owscontext.KMLOffering;
-import net.compusult.owscontext.Simple3857TilesOffering;
 import net.compusult.owscontext.ContextDoc;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Resource;
 import net.compusult.owscontext.WFSOffering;
-import net.compusult.owscontext.WMTSOffering;
 
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.Element;
 
 public class GeoPackager implements Runnable {
@@ -84,6 +82,8 @@ public class GeoPackager implements Runnable {
 	private ProgressTracker progressTracker;
 	private ContextDoc resultingContext;
 	private String fileName;
+	
+	private HarvesterFactory harvesterFactory;
 	
 	public GeoPackager(ContextDoc owsContext, String passPhrase) {
 		this.owsContext = owsContext;
@@ -199,21 +199,12 @@ public class GeoPackager implements Runnable {
 				for (Offering offering : resource.getOfferings()) {
 					/*
 					 * Prefer a simple tile or WMTS offering whenever we have one.
-					 * A WFS offering is a second choice.  No other offerings are
-					 * supported yet.
+					 * A WFS offering is a second choice.
 					 */
-					if (offering instanceof WMTSOffering) {
-						chosenOffering = offering;
+					chosenOffering = offering;
+					if (! (offering instanceof WFSOffering)) {
+						// i.e., if it's WFS, keep looking for another one
 						break;
-					} else if (offering instanceof Simple3857TilesOffering) {
-						chosenOffering = offering;
-						break;
-					} else if (offering instanceof KMLOffering) {
-						chosenOffering = offering;
-						break;
-					} else if (offering instanceof WFSOffering) {
-						chosenOffering = offering;
-						// no break;
 					}
 				}
 
@@ -222,7 +213,7 @@ public class GeoPackager implements Runnable {
 					
 				} else {
 					try {
-						Harvester harvester = HarvesterFactory.getInstance().createHarvester(chosenOffering, progressTracker);
+						Harvester harvester = harvesterFactory.createHarvester(chosenOffering, progressTracker);
 						resourceOfferings.add(new ResourceOffering(resource, chosenOffering, harvester));
 						
 					} catch (GeoPackageException e) {
@@ -280,6 +271,11 @@ public class GeoPackager implements Runnable {
 		public void harvest(GeoPackage gpkg) throws GeoPackageException {
 			harvester.harvest(gpkg, resource, offering);
 		}
+	}
+
+	@Autowired
+	public void setHarvesterFactory(HarvesterFactory harvesterFactory) {
+		this.harvesterFactory = harvesterFactory;
 	}
 	
 }

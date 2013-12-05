@@ -39,11 +39,16 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.Get;
 import org.restlet.resource.Post;
 import org.restlet.resource.ResourceException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.stringtemplate.v4.ST;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 public class MainWPSResource extends WPSResource {
+	
+	@Autowired private ApplicationContext applicationContext;
+	@Autowired private TemplateManager templateManager;
 	
 	public MainWPSResource() {
 		super();
@@ -77,11 +82,11 @@ public class MainWPSResource extends WPSResource {
 
 	private Representation getCapabilities() {
 		try {
-			ST template = new ST(TemplateManager.getInstance().readTemplate("GetCapabilities.st"), '$', '$');
+			ST template = new ST(templateManager.readTemplate("GetCapabilities.st"), '$', '$');
 			template.add("ref", getReference());
 			template.add("req", getRequest());
 			template.add("process", IDENT_PROCESS_GEOPACKAGE);
-			template.add("provider", TemplateManager.getInstance().getContactInfo());
+			template.add("provider", templateManager.getContactInfo());
 			return new StringRepresentation(template.render());
 		} catch (IOException e) {
 			throw new ResourceException(Status.SERVER_ERROR_INTERNAL, "Internal error getting capabilities", e);
@@ -108,7 +113,7 @@ public class MainWPSResource extends WPSResource {
 //		}
 		
 		try {
-			ST template = new ST(TemplateManager.getInstance().readTemplate("DescribeProcess_" + IDENT_PROCESS_GEOPACKAGE + ".st"), '$', '$');
+			ST template = new ST(templateManager.readTemplate("DescribeProcess_" + IDENT_PROCESS_GEOPACKAGE + ".st"), '$', '$');
 			template.add("ref", getReference());
 			template.add("req", getRequest());
 			template.add("process", IDENT_PROCESS_GEOPACKAGE);
@@ -219,7 +224,7 @@ public class MainWPSResource extends WPSResource {
 			return error(ExceptionCode.InvalidParameterValue, "Either one or two data outputs must be requested", "Output");
 		}
 
-		GeoPackager packager = new GeoPackager(owsContext, passPhrase);
+		GeoPackager packager = (GeoPackager) applicationContext.getBean("geopackager", owsContext, passPhrase);
 
 //		Element geoPackageOutputElement = null;
 		boolean contextAsReference = false;
@@ -330,6 +335,10 @@ public class MainWPSResource extends WPSResource {
 		}
 		
 		return domUtil.nodeTextContent(literalDataElement);
+	}
+
+	public void setTemplateManager(TemplateManager templateManager) {
+		this.templateManager = templateManager;
 	}
 
 }

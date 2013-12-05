@@ -124,8 +124,9 @@
 	<!-- One of these is created per WPS request -->	
 	<bean id="geopackager" class="net.compusult.geopackage.service.geopackager.GeoPackager" scope="prototype" />
 	
-	<!-- Initialize the singleton Proj4J coordinate reference system factory. -->
+	<!-- Initialize the singleton Proj4J coordinate reference system and transform factories. -->
 	<bean class="org.osgeo.proj4j.CRSFactory" />
+	<bean class="org.osgeo.proj4j.CoordinateTransformFactory" />
 	
 	<!-- Harvesters (one created per layer being processed) -->
 	<bean id="realWMTSHarvester"   class="net.compusult.geopackage.service.geopackager.RealWMTSHarvester"       scope="prototype" />

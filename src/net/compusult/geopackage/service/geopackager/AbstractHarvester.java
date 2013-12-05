@@ -28,6 +28,9 @@ import net.compusult.owscontext.Operation;
 import net.compusult.owscontext.Resource;
 import net.compusult.xml.DOMUtil;
 
+import org.osgeo.proj4j.CRSFactory;
+import org.osgeo.proj4j.CoordinateTransformFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -39,14 +42,41 @@ public abstract class AbstractHarvester implements Harvester {
 	protected static final String TESTBED_NS = "http://schemas.compusult.net/ows10/ows-context";
 	protected static final String EXTENSION_PARAM = "parameter";
 	
-	protected final ProgressTracker progressTracker;
 	private final DOMUtil domUtil;
+	private final ProgressTracker progressTracker;
+	private CRSFactory crsFactory;
+	private CoordinateTransformFactory transformFactory;
 	
 	protected AbstractHarvester(ProgressTracker progressTracker) {
-		this.progressTracker = progressTracker;
 		this.domUtil = new DOMUtil();
+		this.progressTracker = progressTracker;
+	}
+
+	@Override
+	public CRSFactory getCrsFactory() {
+		return crsFactory;
+	}
+
+	@Autowired
+	public void setCrsFactory(CRSFactory crsFactory) {
+		this.crsFactory = crsFactory;
+	}
+
+	@Override
+	public CoordinateTransformFactory getTransformFactory() {
+		return transformFactory;
 	}
 	
+	@Autowired
+	public void setTransformFactory(CoordinateTransformFactory transformFactory) {
+		this.transformFactory = transformFactory;
+	}
+
+	@Override
+	public ProgressTracker getProgressTracker() {
+		return progressTracker;
+	}
+
 	/**
 	 * Determine the Envelope of the AOI expressed or implied by the given Resource.
 	 * 

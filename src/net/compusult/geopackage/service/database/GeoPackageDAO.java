@@ -382,6 +382,9 @@ public class GeoPackageDAO {
 		PreparedStatement ps = null;
 		
 		String srid = layerInfo.getCrs();
+		if (srid.startsWith("EPSG:")) {
+			srid = srid.substring(5);
+		}
 		ensure_srid_exists(srid);
 
 		try {

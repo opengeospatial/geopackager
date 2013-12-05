@@ -31,6 +31,9 @@ import net.compusult.geopackage.service.model.Rectangle;
 import net.compusult.geopackage.service.wmts.TileServer;
 
 import org.apache.log4j.Logger;
+import org.osgeo.proj4j.CoordinateReferenceSystem;
+import org.osgeo.proj4j.CoordinateTransform;
+import org.osgeo.proj4j.ProjCoordinate;
 
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -41,23 +44,23 @@ public class HarvestTiles {
 	private static final int COMMIT_BATCH_SIZE = 2000;
 	private static final long MAX_BYTES = 1900 * 1024 * 1024;		// 1.9G gives some space for overhead
 
+	private final Harvester harvester;
 	private GeoPackage gpkg;
 	private final TileServer wmts;
 	private final LayerInformation layerInfo;
 	private final Envelope clipRect;
 	private final Map<String, String> params;
-	private final ProgressTracker progressTracker;
 	
 	private int tilesExpected;
 	private int tilesSaved;
 
-	public HarvestTiles(GeoPackage gpkg, TileServer wmts, LayerInformation layerInfo, Envelope clipRect, Map<String, String> params, ProgressTracker progressTracker) {
+	public HarvestTiles(Harvester harvester, GeoPackage gpkg, TileServer wmts, LayerInformation layerInfo, Envelope clipRect, Map<String, String> params) throws GeoPackageException {
+		this.harvester = harvester;
 		this.gpkg = gpkg;
 		this.wmts = wmts;
 		this.layerInfo = layerInfo;
-		this.clipRect = clipRect;
+		this.clipRect = translateCRS(clipRect, layerInfo.getCrs(), harvester);
 		this.params = params;
-		this.progressTracker = progressTracker;
 		
 		// At each level Z the number of tiles is typically (2^Z)^2; i.e. 2^(2Z)
 		// However there may be WMTSs where some zoom scales are not complete.
@@ -67,7 +70,6 @@ public class HarvestTiles {
 		}
 		this.tilesSaved = 0;
 	}
-
 
 	public void harvestTiles() throws GeoPackageException {
 		double overallMinX, overallMinY, overallMaxX, overallMaxY;
@@ -106,6 +108,31 @@ public class HarvestTiles {
 		
 		tileWriter.finished();
 	}
+
+	private static Envelope translateCRS(Envelope clipRect, String crs, Harvester harvester) throws GeoPackageException {
+		if (clipRect == null) {
+			return null;
+		}
+
+		try {
+			CoordinateReferenceSystem epsg4326 = harvester.getCrsFactory().createFromName("EPSG:4326");
+			CoordinateReferenceSystem targetCRS = harvester.getCrsFactory().createFromName(crs);
+			
+			CoordinateTransform transform = harvester.getTransformFactory().createTransform(epsg4326, targetCRS);
+			
+			ProjCoordinate from = new ProjCoordinate(clipRect.getMinX(), clipRect.getMinY());
+			ProjCoordinate toLL = new ProjCoordinate();
+			transform.transform(from, toLL);
+			
+			from = new ProjCoordinate(clipRect.getMaxX(), clipRect.getMaxY());
+			ProjCoordinate toUR = new ProjCoordinate();
+			transform.transform(from, toUR);
+			return new Envelope(toLL.x, toUR.x, toLL.y, toUR.y);
+		
+		} catch (Exception e) {
+			throw new GeoPackageException("Transforming clipping envelope to " + crs, e);
+		}
+	}
 	
 	private boolean overlapsClipRect(String zoomScale, int tileRow, int tileCol, int matrixWidth, int matrixHeight) {
 		if (clipRect == null) {
@@ -117,12 +144,12 @@ public class HarvestTiles {
 		double maxy = wmts.getMaxY();
 		double tileWidth  = (maxx - minx) / matrixWidth;
 		double tileHeight = (maxy - miny) / matrixHeight;
-		minx += tileCol * tileWidth;
-		miny = maxy - tileRow * tileHeight;
-		maxx = minx + tileWidth;
-		maxy = miny + tileHeight;
+		double useminx = minx + tileCol * tileWidth;
+		double useminy = maxy - tileRow * tileHeight;
+		double usemaxx = minx + tileWidth;
+		double usemaxy = miny + tileHeight;
 		
-		Envelope against = new Envelope(minx, miny, maxx, maxy);
+		Envelope against = new Envelope(useminx, useminy, usemaxx, usemaxy);
 		return clipRect.intersects(against);
 	}
 
@@ -255,7 +282,7 @@ public class HarvestTiles {
 			gpkg.createTile(layerInfo.getTableName(), fetcher.getLayerIndex(), fetcher.getTileCol(), fetcher.getTileRow(), tileData);									
 			
 			++ tilesSaved;
-			progressTracker.setProgress((int) (tilesSaved * 100.0 / tilesExpected + 0.5));
+			harvester.getProgressTracker().setProgress((int) (tilesSaved * 100.0 / tilesExpected + 0.5));
 			
 			uncommittedTiles++;									
 			if(uncommittedTiles >= COMMIT_BATCH_SIZE) {

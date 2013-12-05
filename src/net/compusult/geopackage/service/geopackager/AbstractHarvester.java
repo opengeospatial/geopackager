@@ -90,7 +90,7 @@ public abstract class AbstractHarvester implements Harvester {
 		}
 		if (result == null) {
 			// world extents
-			return new Envelope(-90, -180, 90, 180);
+			return new Envelope(-180, 180, -90, 90);
 		} else {
 			return ((Geometry) result).getEnvelopeInternal();
 		}

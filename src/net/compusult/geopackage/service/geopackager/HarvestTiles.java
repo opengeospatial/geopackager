@@ -134,6 +134,8 @@ public class HarvestTiles {
 		}
 	}
 	
+	private static final double EPSILON = 1e-18;
+	
 	private boolean overlapsClipRect(String zoomScale, int tileRow, int tileCol, int matrixWidth, int matrixHeight) {
 		if (clipRect == null) {
 			return true;
@@ -145,12 +147,14 @@ public class HarvestTiles {
 		double tileWidth  = (maxx - minx) / matrixWidth;
 		double tileHeight = (maxy - miny) / matrixHeight;
 		double useminx = minx + tileCol * tileWidth;
-		double useminy = maxy - tileRow * tileHeight;
-		double usemaxx = minx + tileWidth;
-		double usemaxy = miny + tileHeight;
+		double useminy = maxy - (tileRow + 1) * tileHeight;
+		double usemaxx = useminx + tileWidth;
+		double usemaxy = useminy + tileHeight;
 		
-		Envelope against = new Envelope(useminx, useminy, usemaxx, usemaxy);
-		return clipRect.intersects(against);
+		Envelope against = new Envelope(useminx, usemaxx, useminy, usemaxy);
+		Envelope intersection = clipRect.intersection(against);
+		return !intersection.isNull() &&
+				intersection.getWidth() * intersection.getHeight() > EPSILON;
 	}
 
 	private void writeMatrixLayerInfo(GeoPackage geopackage, TileServer wmts) throws GeoPackageException {

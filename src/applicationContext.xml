@@ -142,7 +142,7 @@
 <!-- 	<bean id="jsonCodec" class="net.compusult.owscontext.codec.JSONCodec" scope="prototype" /> -->
 		
 	<!-- Singleton used for reading and writing OWS Context (Atom format) -->
-	<bean class="net.compusult.geometry.JTSGMLConverter" />
+	<bean class="net.compusult.geometry.gml.JTSGMLConverter" />
 	
 	<!-- Singleton HarvesterFactory -->
 	<bean class="net.compusult.geopackage.service.harvester.HarvesterFactory">

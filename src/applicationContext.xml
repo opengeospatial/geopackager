@@ -124,16 +124,20 @@
 	<!-- One of these is created per WPS request -->	
 	<bean id="geopackager" class="net.compusult.geopackage.service.geopackager.GeoPackager" scope="prototype" />
 	
-	<!-- Initialize the singleton Proj4J coordinate reference system and transform factories. -->
-	<bean class="org.osgeo.proj4j.CRSFactory" />
-	<bean class="org.osgeo.proj4j.CoordinateTransformFactory" />
+	<!-- Singleton: how we choose from multiple offerings -->
+	<bean class="net.compusult.geopackage.service.geopackager.UsuallyFirstOfferingSelectionAlgorithm" />
 	
-	<!-- Singleton -->
-	<bean class="net.compusult.owscontext.codec.OWSContextCodecFactory" />
+	<!-- Singleton: controls creation of codecs for OWS Context -->
+	<bean class="net.compusult.owscontext.codec.OWSContextCodecFactory">
+        <map>
+            <entry key="application/atom+xml" value="atomCodec" />
+<!--             <entry key="application/json" value="jsonCodec" /> -->
+	    </map>
+	</bean>
 	
 	<!-- Specific OWS Context codecs -->
-	<bean class="net.compusult.owscontext.codec.AtomCodec" scope="prototype" />
-<!-- 	<bean class="net.compusult.owscontext.codec.JSONCodec" scope="prototype" /> -->
+	<bean id="atomCodec" class="net.compusult.owscontext.codec.AtomCodec" scope="prototype" />
+<!-- 	<bean id="jsonCodec" class="net.compusult.owscontext.codec.JSONCodec" scope="prototype" /> -->
 		
 	<!-- Singleton used for reading and writing OWS Context (Atom format) -->
 	<bean class="net.compusult.geometry.JTSGMLConverter" />
@@ -197,5 +201,9 @@
 		   	</bean>
 	    </property>
 	</bean>
+	
+	<!-- Initialize the singleton Proj4J coordinate reference system and transform factories. -->
+	<bean class="org.osgeo.proj4j.CRSFactory" />
+	<bean class="org.osgeo.proj4j.CoordinateTransformFactory" />
 	
 </beans>

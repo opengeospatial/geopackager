@@ -294,15 +294,18 @@ public class MainWPSResource extends WPSResource {
 			throw new ResourceException(Status.SERVER_ERROR_NOT_IMPLEMENTED, "Only 'ComplexData' input is supported for 'OWSContext'");
 		}
 		
-		String mimeType = complexDataElement.getAttribute("mimeType");
-		if (! AtomCodec.MIME_TYPE.equals(mimeType)) {
-			throw new ResourceException(Status.SERVER_ERROR_NOT_IMPLEMENTED, "Only '" + AtomCodec.MIME_TYPE + "' MIME type is supported");
-		}
-		
 		/*
 		 * Decode the OWS Context document payload of this input.
+		 * TODO figure out how a JSON-encoded context document would look.
+		 * We might need to push some of the following logic down into the AtomCodec itself.
 		 */
-		AtomCodec contextCodec = contextCodecFactory.createAtomCodec();
+		String mimeType = complexDataElement.getAttribute("mimeType");
+		AtomCodec contextCodec;
+		try {
+			contextCodec = (AtomCodec) contextCodecFactory.createCodec(mimeType);
+		} catch (EncodingException e) {
+			throw new ResourceException(Status.SERVER_ERROR_NOT_IMPLEMENTED, "Only '" + AtomCodec.MIME_TYPE + "' MIME type is supported", e);
+		}
 		// Either a <feed> or <entry> element will be at the top level of the input
 		Element feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "feed");
 		if (feedElement == null) {

@@ -18,7 +18,12 @@
    
 package net.compusult.owscontext.codec;
 
+import java.util.Map;
+
+import net.compusult.owscontext.codec.OWSContextCodec.EncodingException;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Required;
 import org.springframework.context.ApplicationContext;
 
 
@@ -26,24 +31,21 @@ public class OWSContextCodecFactory {
 	
 	@Autowired
 	private ApplicationContext applicationContext;
+	private Map<String, String> beanNames;
 
-	public AtomCodec createAtomCodec() {
-		return applicationContext.getBean(AtomCodec.class);
-	}
+	public OWSContextCodec createCodec(String mimeType) throws EncodingException {
 	
-	public OWSContextCodec createJSONCodec() {
-//		return applicationContext.getBean(JSONCodec.class);
-		return null;
-	}
-	
-	public OWSContextCodec createCodec(String mimeType) {
-		if (AtomCodec.MIME_TYPE.equals(mimeType)) {
-			return createAtomCodec();
-//		} else if (JSONCodec.MIME_TYPE.equals(mimeType)) {
-//			return createJSONCodec();
-		} else {
-			return null;
+		String beanName = beanNames.get(mimeType);
+		if (beanName == null) {
+			throw new EncodingException("Unsupported OWS Context codec MIME type " + mimeType);
 		}
+		
+		return (OWSContextCodec) applicationContext.getBean(beanName);
+	}
+
+	@Required
+	public void setBeanNames(Map<String, String> beanNames) {
+		this.beanNames = beanNames;
 	}
 	
 }

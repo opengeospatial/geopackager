@@ -27,7 +27,6 @@ import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.owscontext.ContextDoc;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Resource;
-import net.compusult.owscontext.WFSOffering;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +83,7 @@ public class GeoPackager implements Runnable {
 	private String fileName;
 	
 	private HarvesterFactory harvesterFactory;
+	private OfferingSelectionAlgorithm offeringSelector;
 	
 	public GeoPackager(ContextDoc owsContext, String passPhrase) {
 		this.owsContext = owsContext;
@@ -189,25 +189,11 @@ public class GeoPackager implements Runnable {
 			 * us to present an accurate status (% complete).
 			 * 
 			 * Each Resource represents a layer.  Each Offering within that Resource
-			 * represents an alternative way to view/retrieve the data. Prefer a CSLT
-			 * OpenStreetMap or WMTS offering whenever we have one.  A WFS offering
-			 * is a second choice.  No other offerings are supported yet.
+			 * represents an alternative way to view/retrieve the data.
 			 */
 			for (Resource resource : owsContext.getResources()) {
 				
-				Offering chosenOffering = null;
-				for (Offering offering : resource.getOfferings()) {
-					/*
-					 * Prefer a simple tile or WMTS offering whenever we have one.
-					 * A WFS offering is a second choice.
-					 */
-					chosenOffering = offering;
-					if (! (offering instanceof WFSOffering)) {
-						// i.e., if it's WFS, keep looking for another one
-						break;
-					}
-				}
-
+				Offering chosenOffering = offeringSelector.selectOffering(resource);
 				if (chosenOffering == null) {
 					LOG.warn("Unable to determine a harvesting approach for layer (resource) with identifier '" + resource.getId() + "'");
 					
@@ -276,6 +262,11 @@ public class GeoPackager implements Runnable {
 	@Autowired
 	public void setHarvesterFactory(HarvesterFactory harvesterFactory) {
 		this.harvesterFactory = harvesterFactory;
+	}
+
+	@Autowired
+	public void setOfferingSelector(OfferingSelectionAlgorithm offeringSelector) {
+		this.offeringSelector = offeringSelector;
 	}
 	
 }

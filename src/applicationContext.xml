@@ -148,11 +148,12 @@
 	<bean class="net.compusult.geopackage.service.harvester.HarvesterFactory">
 	    <property name="beanNames">
 	        <map>
-	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wmts"   value="realWMTSHarvester" />
-	            <entry key="http://www.compusult.net/offering/simple-3857-tiles" value="simple3857Harvester" />
-	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/kml"    value="kmlHarvester" />
-	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wms"    value="wmsHarvester" />
-<!-- 	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wfs"    value="wfsHarvester" /> -->
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wmts"      value="realWMTSHarvester" />
+	            <entry key="http://www.compusult.net/offering/simple-3857-tiles"    value="simple3857Harvester" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/kml"       value="kmlHarvester" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wms"       value="wmsHarvester" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile" value="shapefileHarvester" />
+<!-- 	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wfs"       value="wfsHarvester" /> -->
    	        </map>
 	    </property>
 	</bean>
@@ -162,17 +163,19 @@
 	<bean id="realWMTSHarvester"   class="net.compusult.geopackage.service.harvester.RealWMTSHarvester"       scope="prototype" />
 	<bean id="simple3857Harvester" class="net.compusult.geopackage.service.harvester.Simple3857TileHarvester" scope="prototype" />
 	<bean id="kmlHarvester"        class="net.compusult.geopackage.service.harvester.KMLHarvester"            scope="prototype" />
+	<bean id="shapefileHarvester"  class="net.compusult.geopackage.service.harvester.ShapefileHarvester"      scope="prototype" />
 <!-- 	<bean id="wfsHarvester"        class="net.compusult.geopackage.service.harvester.WFSHarvester"            scope="prototype" /> -->
 	
 	<!-- And a singleton factory to create them -->
 	<bean class="net.compusult.owscontext.OfferingFactory">
 	    <property name="beanNames">
 	        <map>
-	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wms"    value="wmsOffering" />
-	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wmts"   value="wmtsOffering" />
-	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/kml"    value="kmlOffering" />
-	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wfs"    value="wfsOffering" />
-	            <entry key="http://www.compusult.net/offering/simple-3857-tiles" value="simple3857Offering" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wms"       value="wmsOffering" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wmts"      value="wmtsOffering" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/kml"       value="kmlOffering" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wfs"       value="wfsOffering" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile" value="shapefileOffering" />
+	            	            <entry key="http://www.compusult.net/offering/simple-3857-tiles" value="simple3857Offering" />
    	        </map>
 	    </property>
 	</bean>
@@ -182,6 +185,7 @@
 	<bean id="wmtsOffering"       class="net.compusult.owscontext.WMTSOffering"            scope="prototype" />
 	<bean id="kmlOffering"        class="net.compusult.owscontext.KMLOffering"             scope="prototype" />
 	<bean id="wfsOffering"        class="net.compusult.owscontext.WFSOffering"             scope="prototype" />
+	<bean id="shapefileOffering"  class="net.compusult.owscontext.ShapefileOffering"       scope="prototype" />
 	<bean id="simple3857Offering" class="net.compusult.owscontext.Simple3857TilesOffering" scope="prototype" />
 
 	<!-- Singleton -->

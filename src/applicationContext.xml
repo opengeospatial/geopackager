@@ -131,15 +131,12 @@
 	<!-- Singleton -->
 	<bean class="net.compusult.owscontext.codec.OWSContextCodecFactory" />
 	
-	<!-- Used for reading and writing OWS Context (Atom format) -->
+	<!-- Specific OWS Context codecs -->
+	<bean class="net.compusult.owscontext.codec.AtomCodec" scope="prototype" />
+<!-- 	<bean class="net.compusult.owscontext.codec.JSONCodec" scope="prototype" /> -->
+		
+	<!-- Singleton used for reading and writing OWS Context (Atom format) -->
 	<bean class="net.compusult.geometry.JTSGMLConverter" />
-	
-	<!-- Harvesters (one created per layer being processed) -->
-	<bean id="realWMTSHarvester"   class="net.compusult.geopackage.service.geopackager.RealWMTSHarvester"       scope="prototype" />
-	<bean id="simple3857Harvester" class="net.compusult.geopackage.service.geopackager.Simple3857TileHarvester" scope="prototype" />
-	<bean id="kmlHarvester"        class="net.compusult.geopackage.service.geopackager.KMLHarvester"            scope="prototype" />
-	<bean id="wmsHarvester"        class="net.compusult.geopackage.service.geopackager.WMSHarvester"            scope="prototype" />
-<!-- 	<bean id="wfsHarvester"        class="net.compusult.geopackage.service.geopackager.WFSHarvester"            scope="prototype" /> -->
 	
 	<!-- Singleton HarvesterFactory -->
 	<bean class="net.compusult.geopackage.service.geopackager.HarvesterFactory">
@@ -154,6 +151,33 @@
 	    </property>
 	</bean>
 	
+	<!-- Harvesters (one created per layer being processed) -->
+	<bean id="wmsHarvester"        class="net.compusult.geopackage.service.geopackager.WMSHarvester"            scope="prototype" />
+	<bean id="realWMTSHarvester"   class="net.compusult.geopackage.service.geopackager.RealWMTSHarvester"       scope="prototype" />
+	<bean id="simple3857Harvester" class="net.compusult.geopackage.service.geopackager.Simple3857TileHarvester" scope="prototype" />
+	<bean id="kmlHarvester"        class="net.compusult.geopackage.service.geopackager.KMLHarvester"            scope="prototype" />
+<!-- 	<bean id="wfsHarvester"        class="net.compusult.geopackage.service.geopackager.WFSHarvester"            scope="prototype" /> -->
+	
+	<!-- And a singleton factory to create them -->
+	<bean class="net.compusult.owscontext.OfferingFactory">
+	    <property name="beanNames">
+	        <map>
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wms"    value="wmsOffering" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wmts"   value="wmtsOffering" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/kml"    value="kmlOffering" />
+	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wfs"    value="wfsOffering" />
+	            <entry key="http://www.compusult.net/offering/simple-3857-tiles" value="simple3857Offering" />
+   	        </map>
+	    </property>
+	</bean>
+	
+	<!-- Concrete Offering subclasses -->
+	<bean id="wmsOffering"        class="net.compusult.owscontext.WMSOffering"             scope="prototype" />
+	<bean id="wmtsOffering"       class="net.compusult.owscontext.WMTSOffering"            scope="prototype" />
+	<bean id="kmlOffering"        class="net.compusult.owscontext.KMLOffering"             scope="prototype" />
+	<bean id="wfsOffering"        class="net.compusult.owscontext.WFSOffering"             scope="prototype" />
+	<bean id="simple3857Offering" class="net.compusult.owscontext.Simple3857TilesOffering" scope="prototype" />
+
 	<!-- Singleton -->
 	<bean class="net.compusult.geopackage.service.resource.helper.TemplateManager">
 	    <property name="contactInfo">

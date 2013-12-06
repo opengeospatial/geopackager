@@ -24,6 +24,7 @@ import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.owscontext.Offering;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Required;
 import org.springframework.context.ApplicationContext;
 
 public class HarvesterFactory {
@@ -42,6 +43,7 @@ public class HarvesterFactory {
 		return (Harvester) applicationContext.getBean(beanName, progressTracker);
 	}
 
+	@Required
 	public void setBeanNames(Map<String, String> beanNames) {
 		this.beanNames = beanNames;
 	}

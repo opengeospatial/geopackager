@@ -19,29 +19,20 @@
 package net.compusult.owscontext.codec;
 
 import org.springframework.beans.factory.annotation.Autowired;
-
-import net.compusult.geometry.gml.GMLConverterInterface;
+import org.springframework.context.ApplicationContext;
 
 
 public class OWSContextCodecFactory {
+	
+	@Autowired
+	private ApplicationContext applicationContext;
 
-	private GMLConverterInterface gmlConverter;
-	
-	// This is only strictly required with the Atom codec
-	@Autowired(required = false)
-	public void setGMLConverter(GMLConverterInterface gmlConverter) {
-		this.gmlConverter = gmlConverter;
-	}
-	
 	public AtomCodec createAtomCodec() {
-		if (gmlConverter == null) {
-			throw new IllegalStateException("gmlConverter has not been initialized for the OWS Context AtomCodec");
-		}
-		return new AtomCodec(gmlConverter);
+		return applicationContext.getBean(AtomCodec.class);
 	}
 	
 	public OWSContextCodec createJSONCodec() {
-//		return new JSONCodec();
+//		return applicationContext.getBean(JSONCodec.class);
 		return null;
 	}
 	

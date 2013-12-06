@@ -59,6 +59,7 @@ import net.compusult.owscontext.TypedLink;
 import net.compusult.owscontext.TypedText;
 import net.compusult.xml.DOMUtil;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -82,14 +83,23 @@ public class AtomCodec implements OWSContextCodec {
 	public static final String GML_NS         = "http://www.opengis.net/gml";
 	
 	private final DOMUtil dom;
-	private final GMLConverterInterface gmlConverter;
+	private GMLConverterInterface gmlConverter;
+	private OfferingFactory offeringFactory;
 	
-	protected AtomCodec(GMLConverterInterface gmlConverter) {
+	public AtomCodec() {
 		this.dom = new DOMUtil();
+	}
+
+	@Autowired
+	public void setGmlConverter(GMLConverterInterface gmlConverter) {
 		this.gmlConverter = gmlConverter;
 	}
-	
-	
+
+	@Autowired
+	public void setOfferingFactory(OfferingFactory offeringFactory) {
+		this.offeringFactory = offeringFactory;
+	}
+
 	@Override
 	public String getName() {
 		return "atom";
@@ -982,7 +992,7 @@ public class AtomCodec implements OWSContextCodec {
 	}
 	
 	private Offering decodeOffering(Element offering) throws EncodingException {
-		Offering offer = OfferingFactory.getInstance().createOffering(dom.getAttributeValue(offering, "code"));
+		Offering offer = offeringFactory.createOffering(dom.getAttributeValue(offering, "code"));
 		
 		for (Element child : dom.findChildElements(offering)) {
 			boolean handled = false;

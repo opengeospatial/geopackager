@@ -18,21 +18,31 @@
    
 package net.compusult.owscontext;
 
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Required;
+import org.springframework.context.ApplicationContext;
+
 public class OfferingFactory {
 
-	private static final OfferingFactory INSTANCE = new OfferingFactory();
-	
-	public static OfferingFactory getInstance() {
-		return INSTANCE;
-	}
+	@Autowired
+	private ApplicationContext applicationContext;
+	private Map<String, String> beanNames;
 	
 	public Offering createOffering(String code) {
-		if (WMSOffering.OFFERING_CODE.equals(code)) {						return new WMSOffering();
-		} else if (WMTSOffering.OFFERING_CODE.equals(code)) {				return new WMTSOffering();
-		} else if (Simple3857TilesOffering.OFFERING_CODE.equals(code)) {	return new Simple3857TilesOffering();
-		} else if (WFSOffering.OFFERING_CODE.equals(code)) {				return new WFSOffering();
-		} else if (KMLOffering.OFFERING_CODE.equals(code)) {				return new KMLOffering();
-		} else {															return new Offering(code);
+		
+		String beanName = beanNames.get(code);
+		if (beanName != null) {
+			return (Offering) applicationContext.getBean(beanName);
 		}
+		
+		return new Offering(code);
 	}
+	
+	@Required
+	public void setBeanNames(Map<String, String> beanNames) {
+		this.beanNames = beanNames;
+	}
+
 }

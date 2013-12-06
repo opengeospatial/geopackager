@@ -16,11 +16,12 @@
  * limitations under the License.
  */
    
-package net.compusult.geopackage.service.geopackager;
+package net.compusult.geopackage.service.harvester;
 
 import java.util.Map;
 
 import net.compusult.geopackage.service.GeoPackageException;
+import net.compusult.geopackage.service.geopackager.ProgressTracker;
 import net.compusult.owscontext.Offering;
 
 import org.springframework.beans.factory.annotation.Autowired;

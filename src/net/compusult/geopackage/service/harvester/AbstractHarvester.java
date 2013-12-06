@@ -16,13 +16,14 @@
  * limitations under the License.
  */
    
-package net.compusult.geopackage.service.geopackager;
+package net.compusult.geopackage.service.harvester;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import net.compusult.geopackage.service.GeoPackageException;
+import net.compusult.geopackage.service.geopackager.ProgressTracker;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Operation;
 import net.compusult.owscontext.Resource;

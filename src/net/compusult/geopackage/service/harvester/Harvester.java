@@ -16,12 +16,13 @@
  * limitations under the License.
  */
    
-package net.compusult.geopackage.service.geopackager;
+package net.compusult.geopackage.service.harvester;
 
 import org.osgeo.proj4j.CRSFactory;
 import org.osgeo.proj4j.CoordinateTransformFactory;
 
 import net.compusult.geopackage.service.GeoPackageException;
+import net.compusult.geopackage.service.geopackager.ProgressTracker;
 import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Resource;

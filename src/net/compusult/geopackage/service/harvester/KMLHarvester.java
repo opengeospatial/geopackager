@@ -16,7 +16,7 @@
  * limitations under the License.
  */
    
-package net.compusult.geopackage.service.geopackager;
+package net.compusult.geopackage.service.harvester;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import net.compusult.geopackage.service.GeoPackageException;
+import net.compusult.geopackage.service.geopackager.ProgressTracker;
 import net.compusult.geopackage.service.model.FeatureColumnInfo;
 import net.compusult.geopackage.service.model.FeatureColumnInfo.ColumnType;
 import net.compusult.geopackage.service.model.GeoPackage;

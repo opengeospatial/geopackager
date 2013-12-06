@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.compusult.geopackage.service.GeoPackageException;
+import net.compusult.geopackage.service.harvester.Harvester;
+import net.compusult.geopackage.service.harvester.HarvesterFactory;
 import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.owscontext.ContextDoc;
 import net.compusult.owscontext.Offering;

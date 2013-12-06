@@ -16,10 +16,11 @@
  * limitations under the License.
  */
    
-package net.compusult.geopackage.service.geopackager;
+package net.compusult.geopackage.service.harvester;
 
 import java.util.Map;
 
+import net.compusult.geopackage.service.geopackager.ProgressTracker;
 import net.compusult.xml.DOMUtil;
 
 import org.w3c.dom.Element;

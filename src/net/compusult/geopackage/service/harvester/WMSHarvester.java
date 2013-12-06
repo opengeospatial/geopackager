@@ -16,11 +16,12 @@
  * limitations under the License.
  */
    
-package net.compusult.geopackage.service.geopackager;
+package net.compusult.geopackage.service.harvester;
 
 import java.util.Map;
 
 import net.compusult.geopackage.service.GeoPackageException;
+import net.compusult.geopackage.service.geopackager.ProgressTracker;
 import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.geopackage.service.model.LayerInformation;
 import net.compusult.geopackage.service.model.LayerInformation.Type;

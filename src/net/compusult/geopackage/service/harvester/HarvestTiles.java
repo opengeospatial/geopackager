@@ -16,7 +16,7 @@
  * limitations under the License.
  */
    
-package net.compusult.geopackage.service.geopackager;
+package net.compusult.geopackage.service.harvester;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

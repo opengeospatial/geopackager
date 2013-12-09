@@ -66,6 +66,20 @@ public class ShapefileHarvester extends AbstractHarvester {
 		layerInfo.setTitle(resource.getTitle().getText());
 		layerInfo.setCrs("4326");
 		
+		try {
+			/*
+			 * Two effects:
+			 * 1. Count the number of feature types.
+			 * 2. Create a coalesced data model that is the union of all of them.
+			 */
+			getProgressTracker().setItemCount(createFeatureTable(gpkg, offering, layerInfo));
+		} catch (GeoPackageException e) {
+			throw e;
+		} catch (Exception e) {
+			// wrap any other type of exception
+			throw new GeoPackageException("Error processing shapefile", e);
+		}
+		
 		for (Content content : offering.getContents()) {
 			
 			Map<String, Object> connect = new HashMap<String, Object>();
@@ -77,40 +91,6 @@ public class ShapefileHarvester extends AbstractHarvester {
 				for (String typeName : typeNames) {
 				
 					SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
-					SimpleFeatureType featureType = featureSource.getSchema();
-					
-					/*
-					 * Map from the feature type's attribute descriptors to fields in our new
-					 * SQLite table.  Type matching is "best guess" but SQLite's type flexibility
-					 * works to our advantage.
-					 */
-					List<FeatureColumnInfo> featCols = new ArrayList<FeatureColumnInfo>();
-					featCols.add(new FeatureColumnInfo(ColumnType.INTEGER, "id", true, true, null));	// autoincrement ID
-					featCols.add(new FeatureColumnInfo(ColumnType.TEXT, "featureid", false, false, null));
-					for (AttributeDescriptor descript : featureType.getAttributeDescriptors()) {
-						String colName = descript.getLocalName().toLowerCase();
-						Class<?> binding = descript.getType().getBinding();
-						ColumnType colType = null;
-						String geomType = null;
-						if (binding == Integer.class || binding == Long.class) {
-							colType = ColumnType.INTEGER;
-						} else if (Number.class.isAssignableFrom(binding)) {
-							colType = ColumnType.REAL;
-						} else if (Geometry.class.isAssignableFrom(binding) || org.opengis.geometry.Geometry.class.isAssignableFrom(binding)) {
-							colType = ColumnType.GEOMETRY;
-							geomType = "GEOMETRY";		// can we be more precise?
-						} else if (binding == String.class) {
-							colType = ColumnType.TEXT;
-						}
-						
-						featCols.add(new FeatureColumnInfo(colType, colName, false, false, geomType));
-					}
-					
-					/*
-					 * Create the new feature table.
-					 */
-					gpkg.updateFeatureTableSchema(tableName, layerInfo, featCols);
-					
 					SimpleFeatureCollection collection = featureSource.getFeatures();
 					SimpleFeatureIterator iterator = collection.features();
 					
@@ -135,7 +115,7 @@ public class ShapefileHarvester extends AbstractHarvester {
 									val = ((org.opengis.geometry.Geometry) prop.getValue()).toString();
 									geomColumns.add(key);
 								} else {
-									val = prop.getValue().toString();
+									val = String.valueOf(prop.getValue());
 								}
 								props.put(key, val);
 							}
@@ -146,15 +126,88 @@ public class ShapefileHarvester extends AbstractHarvester {
 					} finally {
 						iterator.close();
 					}
+					
+					getProgressTracker().newItem();
 				}
 				
 			} catch (GeoPackageException e) {
 				throw e;
 			} catch (Exception e) {
 				// wrap any other type of exception
-				throw new GeoPackageException("", e);
+				throw new GeoPackageException("Error processing shapefile", e);
 			}
 		}
+	}
+	
+	/**
+	 * One offering element can have multiple content elements, referencing Shapefiles with
+	 * differing feature schemas.  Try to accommodate the simple cases: that all the schemas
+	 * are the same, or some have an extra attribute or two.  We spin through all the content
+	 * elements, gathering up a complete list of required feature columns.
+	 * 
+	 * @param gpkg
+	 * @param offering
+	 * @param layerInfo
+	 * @return the number of "items" that have to be processed
+	 * @throws GeoPackageException
+	 */
+	private int createFeatureTable(GeoPackage gpkg, Offering offering, LayerInformation layerInfo) throws Exception {
+
+		Set<String> foundNames = new HashSet<String>();
+		List<FeatureColumnInfo> featCols = new ArrayList<FeatureColumnInfo>();
+		featCols.add(new FeatureColumnInfo(ColumnType.INTEGER, "id", true, true, null));	// autoincrement ID
+		featCols.add(new FeatureColumnInfo(ColumnType.TEXT, "featureid", false, false, null));
+		
+		int items = 0;
+		
+		for (Content content : offering.getContents()) {
+			Map<String, Object> connect = new HashMap<String, Object>();
+			connect.put("url", content.getUrl());
+			
+			DataStore dataStore = DataStoreFinder.getDataStore(connect);
+			String[] typeNames = dataStore.getTypeNames();
+			for (String typeName : typeNames) {
+			
+				SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
+				SimpleFeatureType featureType = featureSource.getSchema();
+				
+				/*
+				 * Map from the feature type's attribute descriptors to fields in our new
+				 * SQLite table.  Type matching is "best guess" but SQLite's type flexibility
+				 * works to our advantage.
+				 */
+				for (AttributeDescriptor descript : featureType.getAttributeDescriptors()) {
+					String colName = descript.getLocalName().toLowerCase();
+					if (! foundNames.contains(colName)) {
+						Class<?> binding = descript.getType().getBinding();
+						ColumnType colType = null;
+						String geomType = null;
+						if (binding == Integer.class || binding == Long.class) {
+							colType = ColumnType.INTEGER;
+						} else if (Number.class.isAssignableFrom(binding)) {
+							colType = ColumnType.REAL;
+						} else if (Geometry.class.isAssignableFrom(binding) || org.opengis.geometry.Geometry.class.isAssignableFrom(binding)) {
+							colType = ColumnType.GEOMETRY;
+							geomType = "GEOMETRY";		// can we be more precise?
+						} else if (binding == String.class) {
+							colType = ColumnType.TEXT;
+						}
+	
+						featCols.add(new FeatureColumnInfo(colType, colName, false, false, geomType));
+						foundNames.add(colName);
+					}
+				}
+			}
+			
+			items += typeNames.length;
+		}
+		
+		/*
+		 * Finally, create the new feature table.
+		 */
+		gpkg.updateFeatureTableSchema(layerInfo.getTableName(), layerInfo, featCols);
+		
+		return items;
 	}
 	
 }

@@ -36,6 +36,7 @@ public class ProgressTracker {
 
 	public void newItem() {
 		++ thisItem;
+		this.percentComplete = 0;
 	}
 	
 	public void setProgress(int percentage) {

@@ -208,8 +208,4 @@
 	    </property>
 	</bean>
 	
-	<!-- Initialize the singleton Proj4J coordinate reference system and transform factories. -->
-	<bean class="org.osgeo.proj4j.CRSFactory" />
-	<bean class="org.osgeo.proj4j.CoordinateTransformFactory" />
-	
 </beans>

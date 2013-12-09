@@ -31,9 +31,11 @@ import net.compusult.geopackage.service.model.Rectangle;
 import net.compusult.geopackage.service.wmts.TileServer;
 
 import org.apache.log4j.Logger;
-import org.osgeo.proj4j.CoordinateReferenceSystem;
-import org.osgeo.proj4j.CoordinateTransform;
-import org.osgeo.proj4j.ProjCoordinate;
+import org.geotools.geometry.DirectPosition2D;
+import org.geotools.referencing.CRS;
+import org.geotools.referencing.operation.projection.ProjectionException;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
 
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -114,21 +116,34 @@ public class HarvestTiles {
 			return null;
 		}
 
+		CoordinateReferenceSystem epsg4326 = null;
+		CoordinateReferenceSystem targetCRS = null;
+
 		try {
-			CoordinateReferenceSystem epsg4326 = harvester.getCrsFactory().createFromName("EPSG:4326");
-			CoordinateReferenceSystem targetCRS = harvester.getCrsFactory().createFromName(crs);
+			epsg4326 = CRS.decode("EPSG:4326");
+			targetCRS = CRS.decode(crs);
 			
-			CoordinateTransform transform = harvester.getTransformFactory().createTransform(epsg4326, targetCRS);
+			MathTransform transform = CRS.findMathTransform(epsg4326, targetCRS, true);
 			
-			ProjCoordinate from = new ProjCoordinate(clipRect.getMinX(), clipRect.getMinY());
-			ProjCoordinate toLL = new ProjCoordinate();
+			DirectPosition2D from = new DirectPosition2D(clipRect.getMinY(), clipRect.getMinX());
+			DirectPosition2D toLL = new DirectPosition2D();
 			transform.transform(from, toLL);
 			
-			from = new ProjCoordinate(clipRect.getMaxX(), clipRect.getMaxY());
-			ProjCoordinate toUR = new ProjCoordinate();
+			from = new DirectPosition2D(clipRect.getMaxY(), clipRect.getMaxX());
+			DirectPosition2D toUR = new DirectPosition2D();
 			transform.transform(from, toUR);
 			return new Envelope(toLL.x, toUR.x, toLL.y, toUR.y);
-		
+	
+		} catch (ProjectionException e) {
+			/*
+			 * Chances are that we failed to transform the incoming envelope because it is
+			 * global (-180..180, -90..90) and one or more of those does not exist in the
+			 * target CRS.  For example, with EPS:4326 to EPSG:3857 if fails because
+			 * "90 degrees S is too close to a pole".
+			 */
+			org.opengis.geometry.Envelope total = CRS.getEnvelope(targetCRS);
+			return new Envelope(total.getMinimum(1), total.getMaximum(1), total.getMinimum(0), total.getMaximum(0));
+			
 		} catch (Exception e) {
 			throw new GeoPackageException("Transforming clipping envelope to " + crs, e);
 		}

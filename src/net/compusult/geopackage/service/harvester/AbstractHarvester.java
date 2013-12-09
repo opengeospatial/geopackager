@@ -29,9 +29,6 @@ import net.compusult.owscontext.Operation;
 import net.compusult.owscontext.Resource;
 import net.compusult.xml.DOMUtil;
 
-import org.osgeo.proj4j.CRSFactory;
-import org.osgeo.proj4j.CoordinateTransformFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -45,32 +42,10 @@ public abstract class AbstractHarvester implements Harvester {
 	
 	private final DOMUtil domUtil;
 	private final ProgressTracker progressTracker;
-	private CRSFactory crsFactory;
-	private CoordinateTransformFactory transformFactory;
 	
 	protected AbstractHarvester(ProgressTracker progressTracker) {
 		this.domUtil = new DOMUtil();
 		this.progressTracker = progressTracker;
-	}
-
-	@Override
-	public CRSFactory getCrsFactory() {
-		return crsFactory;
-	}
-
-	@Autowired
-	public void setCrsFactory(CRSFactory crsFactory) {
-		this.crsFactory = crsFactory;
-	}
-
-	@Override
-	public CoordinateTransformFactory getTransformFactory() {
-		return transformFactory;
-	}
-	
-	@Autowired
-	public void setTransformFactory(CoordinateTransformFactory transformFactory) {
-		this.transformFactory = transformFactory;
 	}
 
 	@Override

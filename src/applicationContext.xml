@@ -175,7 +175,7 @@
 	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/kml"       value="kmlOffering" />
 	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wfs"       value="wfsOffering" />
 	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile" value="shapefileOffering" />
-	            	            <entry key="http://www.compusult.net/offering/simple-3857-tiles" value="simple3857Offering" />
+				<entry key="http://www.compusult.net/offering/simple-3857-tiles"    value="simple3857Offering" />
    	        </map>
 	    </property>
 	</bean>

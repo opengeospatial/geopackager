@@ -107,7 +107,7 @@ public abstract class WPSResource extends ServerResource {
 		attrs.put(RESP_ATTR_EXCEPTION_CODE, errorCode.name());
 		attrs.put(RESP_ATTR_EXCEPTION_TEXT, msg == null ? "" : msg);
 		attrs.put(RESP_ATTR_EXCEPTION_LOCATOR, locator == null ? "" : locator);
-		attrs.put(RESP_ATTR_EXCEPTION_THROWABLE, t);
+		attrs.put(RESP_ATTR_EXCEPTION_THROWABLE, t == null ? new Throwable() : t);
 		throw new ResourceException(errorCode.getStatus());
 	}
 	

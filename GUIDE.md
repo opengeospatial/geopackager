@@ -40,6 +40,10 @@ Harvesters are responsible for extracting data from target data sources, and wri
 * A WMS harvester may optionally use `<testbed:parameters>` to define a similar kind of tiling range.
 * A KML harvester uses either or both of inline data or URL reference in a `<content>` element.
 * A WFS harvester would use multiple `<operation>` elements under the selected offering.
+* A Shapefile harvester may optionally use `<testbed:parameters>` to define the geometry types in which it is interested or not interested:
+  * Specify `<testbed:parameter name="default-geometries" value="exclude"/>` to change the default stance of including all feature geometries, to excluding them.  Or set the parameter to `"include"` to be explicit that all feature geometries are to be included by default.
+  * Specify `<testbed:parameter name="include-geometries" value="linestring point"/>` to choose which geometries are included when `default-geometries` is set to `exclude`.
+  * Specify `<testbed:parameter name="exclude-geometries" value="linestring point"/>` to choose which geometries are included when `default-geometries` is set to `include`.
 
 OWS Context
 -----------
@@ -47,3 +51,12 @@ OWS Context
 The package `net.compusult.owscontext` contains a Java model for an OWS Context document.  The top-level class is called `ContextDoc`, which has attributes and child objects in a manner similar to that defined in the OGC OWS Context Conceptual Model (OGC doc no. 12-080r2) draft 17.
 
 The subpackage `codec` contains a factory for constructing OWS Context encoder/decoders based on desired MIME type.  At present only the Atom format (`application/atom+xml`) is defined.  The Atom codec is compliant with OGC OWS Context Atom Encoding Specification (OGC doc no. 12-084r2) draft 21.
+
+Custom Extensions
+-----------------
+
+The offering code for Shapefiles (c.f. section 7.2.3 of 12-080r2) is made up since no standard code seems to exist.
+
+Similarly the offering code for 'simple 3857 tile server' is an invention.
+
+The namespace of the `<testbed:parameters>` block (`http://schemas.compusult.net/ows10/ows-context`) is for the convenience of OWS-10 only, not intended to be a permanent solution.

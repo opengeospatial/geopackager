@@ -40,6 +40,7 @@ import net.compusult.owscontext.Resource;
 import org.apache.log4j.Logger;
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
+import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
@@ -50,6 +51,7 @@ import org.opengis.feature.type.AttributeDescriptor;
 import org.w3c.dom.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class ShapefileHarvester extends AbstractHarvester {
 	
@@ -69,7 +71,7 @@ public class ShapefileHarvester extends AbstractHarvester {
 		
 		final LayerInformation layerInfo = new LayerInformation(gpkg, Type.FEATURES, tableName);
 		layerInfo.setTitle(resource.getTitle().getText());
-		layerInfo.setCrs("4326");
+		layerInfo.setCrs(null);		// will be overwritten later
 		
 		try {
 			/*
@@ -214,7 +216,17 @@ public class ShapefileHarvester extends AbstractHarvester {
 			Map<String, Object> connect = new HashMap<String, Object>();
 			connect.put("url", content.getUrl());
 			
-			DataStore dataStore = DataStoreFinder.getDataStore(connect);
+			ShapefileDataStore dataStore = (ShapefileDataStore) DataStoreFinder.getDataStore(connect);
+			if (dataStore == null) {
+				throw new GeoPackageException("Could not obtain GeoTools datastore for " + content.getUrl());
+			}
+//			GeometryFactory x = dataStore.getGeometryFactory();
+//			String srid = String.valueOf(x.getSRID());
+//			if (layerInfo.getCrs() != null && !srid.equals(layerInfo.getCrs())) {
+//				throw new GeoPackageException("SRID mismatch within one Shapefile layer: " + layerInfo.getCrs() + " vs. " + srid);
+//			}
+//			layerInfo.setCrs(srid);
+			
 			String[] typeNames = dataStore.getTypeNames();
 			for (String typeName : typeNames) {
 			
@@ -255,6 +267,9 @@ public class ShapefileHarvester extends AbstractHarvester {
 		/*
 		 * Finally, create the new feature table.
 		 */
+		if (layerInfo.getCrs() == null) {
+			layerInfo.setCrs("4326");
+		}
 		gpkg.updateFeatureTableSchema(layerInfo.getTableName(), layerInfo, featCols);
 		
 		return items;

@@ -50,8 +50,7 @@ public class Simple3857TileHarvester extends AbstractWMTSHarvester {
 		layerInfo.setTitle(resource.getTitle().getText());
 		layerInfo.setCrs("EPSG:3857");
 		
-		HarvestTiles tileHarvester = new HarvestTiles(this, gpkg, server, layerInfo, selectEnvelope(resource), params);
-		tileHarvester.harvestTiles();
+		harvestTiles(gpkg, server, layerInfo, selectEnvelope(resource), params);
 	}
 	
 }

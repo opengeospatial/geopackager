@@ -34,6 +34,7 @@ import net.compusult.geopackage.service.geopackager.GeoPackager.ProcessingStatus
 import net.compusult.geopackage.service.geopackager.GeoPackagingPool;
 import net.compusult.xml.DOMUtil;
 
+import org.apache.log4j.Logger;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
@@ -46,6 +47,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 public abstract class WPSResource extends ServerResource {
+	
+	private static final Logger LOG = Logger.getLogger(WPSResource.class);
 	
 	private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	static {
@@ -103,6 +106,7 @@ public abstract class WPSResource extends ServerResource {
 	}
 	
 	protected Representation error(ExceptionCode errorCode, String msg, String locator, Throwable t) {
+		LOG.error(msg, t);
 		Map<String, Object> attrs = getResponseAttributes();
 		attrs.put(RESP_ATTR_EXCEPTION_CODE, errorCode.name());
 		attrs.put(RESP_ATTR_EXCEPTION_TEXT, msg == null ? "" : msg);

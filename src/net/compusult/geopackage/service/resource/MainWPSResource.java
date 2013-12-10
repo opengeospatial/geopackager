@@ -29,6 +29,7 @@ import net.compusult.owscontext.ContextDoc;
 import net.compusult.owscontext.codec.AtomCodec;
 import net.compusult.owscontext.codec.OWSContextCodec.EncodingException;
 import net.compusult.owscontext.codec.OWSContextCodecFactory;
+import net.compusult.xml.XMLFetcher;
 
 import org.restlet.data.Form;
 import org.restlet.data.Status;
@@ -306,11 +307,24 @@ public class MainWPSResource extends WPSResource {
 		} catch (EncodingException e) {
 			throw new ResourceException(Status.SERVER_ERROR_NOT_IMPLEMENTED, "Only '" + AtomCodec.MIME_TYPE + "' MIME type is supported", e);
 		}
+		
 		// Either a <feed> or <entry> element will be at the top level of the input
-		Element feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "feed");
-		if (feedElement == null) {
-			feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "entry");
+		Element feedElement;
+		String href = domUtil.getAttributeValue(complexDataElement, "href");
+		if (href != null) {
+			try {
+				Document contextDoc = new XMLFetcher(href).fetch();
+				feedElement = contextDoc.getDocumentElement();
+			} catch (IOException e) {
+				throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Failed to retrieve external OWS Context document", e);
+			}
+		} else {
+			feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "feed");
+			if (feedElement == null) {
+				feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "entry");
+			}
 		}
+		
 		try {
 			return contextCodec.decode(feedElement);
 		} catch (EncodingException e) {

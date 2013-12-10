@@ -50,8 +50,7 @@ public class RealWMTSHarvester extends AbstractWMTSHarvester {
 		layerInfo.setTitle(resource.getTitle().getText());
 		layerInfo.setCrs(wmts.getCRS());
 		
-		HarvestTiles tileHarvester = new HarvestTiles(this, gpkg, wmts, layerInfo, selectEnvelope(resource), params);
-		tileHarvester.harvestTiles();
+		harvestTiles(gpkg, wmts, layerInfo, selectEnvelope(resource), params);
 	}
 	
 }

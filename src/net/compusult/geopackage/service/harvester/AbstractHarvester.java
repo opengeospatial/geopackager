@@ -82,6 +82,9 @@ public abstract class AbstractHarvester implements Harvester {
 	}
 	
 	protected String sanitizeTableName(String tableName) {
+		if (tableName.startsWith("http")) {
+			tableName = tableName.replaceFirst("https?://[^/]+/", "");
+		}
 		tableName = tableName.replaceAll("[^\\w\\d]", "");
 		if (tableName.length() > 32) {
 			tableName = tableName.substring(0, 32);

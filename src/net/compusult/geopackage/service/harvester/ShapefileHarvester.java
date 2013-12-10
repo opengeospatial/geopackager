@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import net.compusult.geopackage.service.GeoPackageException;
@@ -46,6 +47,7 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
+import org.w3c.dom.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -53,12 +55,15 @@ public class ShapefileHarvester extends AbstractHarvester {
 	
 	private static final Logger LOG = Logger.getLogger(ShapefileHarvester.class);
 	
+	// how many features to insert before committing
+	private static final int MAX_UNCOMMITTED_FEATURES = 250;
+	
 	public ShapefileHarvester(ProgressTracker progressTracker) {
 		super(progressTracker);
 	}
 	
 	@Override
-	public void harvest(final GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
+	public void harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
 		
 		final String tableName = sanitizeTableName(resource.getId());
 		
@@ -82,8 +87,20 @@ public class ShapefileHarvester extends AbstractHarvester {
 		
 		for (Content content : offering.getContents()) {
 			
+			Map<String, String> params = parseParameters(content.getExtensions());
+			
+			/*
+			 * Set defaultIsExclude true if and only if "default-geometries" is set
+			 * to "exclude".  If that parameter is unset or set to something else,
+			 * we default to including all geometries.
+			 */
+			String defaultIsExcludeStr = params.get("default-geometries");
+			boolean defaultIsExclude = "exclude".equals(defaultIsExcludeStr);
+			
 			Map<String, Object> connect = new HashMap<String, Object>();
 			connect.put("url", content.getUrl());
+			
+			int uncommittedFeatures = 0;
 			
 			try {
 				DataStore dataStore = DataStoreFinder.getDataStore(connect);
@@ -101,6 +118,12 @@ public class ShapefileHarvester extends AbstractHarvester {
 							Map<String, String> props = new HashMap<String, String>();
 							Set<String> geomColumns = new HashSet<String>();
 							
+							/*
+							 * If we're excluding all features by default, then 'skip' is true
+							 * until we hit a geometry we know we're including.
+							 */
+							boolean skip = defaultIsExclude;
+							
 							LOG.trace("--- Converting Feature ID: " + feature.getID());
 							props.put("featureid", feature.getID());
 							
@@ -108,20 +131,43 @@ public class ShapefileHarvester extends AbstractHarvester {
 								
 								String key = prop.getName().getLocalPart().toLowerCase();
 								String val;
+								
+								boolean isGeom = false;
+								String geomType = null;
+								
 								if (prop.getValue() instanceof Geometry) {
 									val = ((Geometry) prop.getValue()).toText();
-									geomColumns.add(key);
+									geomType = ((Geometry) prop.getValue()).getGeometryType().toLowerCase();
+									isGeom = true;
 								} else if (prop.getValue() instanceof org.opengis.geometry.Geometry) {
 									val = ((org.opengis.geometry.Geometry) prop.getValue()).toString();
-									geomColumns.add(key);
+									geomType = val.toLowerCase().replaceFirst("[^a-z].*", "");
+									isGeom = true;
 								} else {
 									val = String.valueOf(prop.getValue());
 								}
 								props.put(key, val);
+								
+								if (isGeom) {
+									if (!defaultIsExclude && params.containsKey("exclude-" + geomType)) {
+										// We are including everything except this specific type of geometry
+										skip = true;
+									} else if (defaultIsExclude && params.containsKey("include-" + geomType)) {
+										// We are excluding everything except this specific type of geometry
+										skip = false;
+									}
+									geomColumns.add(key);
+								}
 							}
 							
-							gpkg.addVectorFeature(tableName, props, geomColumns);
-							gpkg.commit();
+							if (! skip) {
+								gpkg.addVectorFeature(tableName, props, geomColumns);
+								
+								if (++ uncommittedFeatures == MAX_UNCOMMITTED_FEATURES) {
+									gpkg.commit();
+									uncommittedFeatures = 0;
+								}
+							}
 						}
 					} finally {
 						iterator.close();
@@ -136,6 +182,10 @@ public class ShapefileHarvester extends AbstractHarvester {
 				// wrap any other type of exception
 				throw new GeoPackageException("Error processing shapefile", e);
 			}
+			
+			// Unconditionally commit at the end of each <content> element
+			gpkg.commit();
+			uncommittedFeatures = 0;
 		}
 	}
 	
@@ -208,6 +258,28 @@ public class ShapefileHarvester extends AbstractHarvester {
 		gpkg.updateFeatureTableSchema(layerInfo.getTableName(), layerInfo, featCols);
 		
 		return items;
+	}
+
+	@Override
+	protected Map<String, String> parseParameters(List<Node> extensionElements) throws GeoPackageException {
+		Map<String, String> result = super.parseParameters(extensionElements);
+		Map<String, String> newEntries = new HashMap<String, String>();
+		
+		/*
+		 * Expand a parameter of the form name="{in,ex}clude-geometr{y,ies}" value="linestring multilinestring"
+		 * into a series of discrete parameters name="include-linestring" value="true" and so on.
+		 */
+		for (Entry<String, String> entry : result.entrySet()) {
+			if (entry.getKey().startsWith("include-geometr") || entry.getKey().startsWith("exclude-geometr")) {
+				String pfx = entry.getKey().substring(0, 2);
+				for (String piece : entry.getValue().split("\\s+")) {
+					newEntries.put(pfx + "clude-" + piece.toLowerCase(), "true");
+				}
+			}
+		}
+		
+		result.putAll(newEntries);
+		return result;
 	}
 	
 }

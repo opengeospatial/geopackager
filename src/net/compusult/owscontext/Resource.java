@@ -201,6 +201,10 @@ public class Resource {
 		return contentByRefs;
 	}
 
+	public List<Node> getExtensions() {
+		return extensions;
+	}
+	
 	@Override
 	public String toString() {
 		return "Resource [id=" + id + ", title=" + title + ", abstrakt="
@@ -365,8 +369,4 @@ public class Resource {
 		return true;
 	}
 
-	public List<Node> getExtensions() {
-		return extensions;
-	}
-	
 }

@@ -1056,26 +1056,29 @@ public class AtomCodec implements OWSContextCodec {
 		
 		cont.setType(dom.getAttributeValue(content, "type"));
 		cont.setUrl(dom.getAttributeValue(content, "href"));
+		
+		/*
+		 * If the href is non-empty, or the text content of the content element
+		 * is non-empty, then all the non-text child elements of the content element
+		 * must be extension elements.
+		 */
+		boolean expectChildContentElement = "".equals(cont.getUrl());
+		
 		String contentText = dom.nodeTextContent(content);
 		if (contentText != null && !"".equals(contentText.trim())) {
 			cont.setActualContent(contentText.trim());
-		} else {
+			expectChildContentElement = false;
+		}
+		
+		for (Element child : dom.findChildElements(content)) {
 			/*
-			 * If it's not a string, the content had better be a well-formed XML document.
 			 * Pick out the first Element node from the children, and call it the
-			 * root node.
+			 * root node of the content.
 			 */
-			List<Element> children = dom.findChildElements(content);
-			switch (children.size()) {
-			case 0:
-//				throw new EncodingException("No content found in owc:content element!");
-				cont.setActualContent("");	// be more resilient
-				break;
-			case 1:
-				cont.setActualContent(children.get(0));
-				break;
-			default:
-				throw new EncodingException("Too many child elements (" + children.size() + ") found under an owc:content, owc:payload or owc:result!");
+			if (expectChildContentElement && cont.getActualContent() == null) {
+				cont.setActualContent(child);
+			} else {
+				cont.getExtensions().add(child);
 			}
 		}
 		

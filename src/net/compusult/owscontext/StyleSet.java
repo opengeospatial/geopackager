@@ -87,6 +87,10 @@ public class StyleSet {
 		this.content = content;
 	}
 
+	public List<Node> getExtensions() {
+		return extensions;
+	}
+	
 	@Override
 	public String toString() {
 		return "StyleSet [name=" + name + ", title=" + title + ", abstrakt="
@@ -146,10 +150,6 @@ public class StyleSet {
 		} else if (!title.equals(other.title))
 			return false;
 		return true;
-	}
-	
-	public List<Node> getExtensions() {
-		return extensions;
 	}
 	
 }

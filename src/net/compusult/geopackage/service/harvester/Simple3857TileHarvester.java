@@ -42,7 +42,7 @@ public class Simple3857TileHarvester extends AbstractWMTSHarvester {
 
 		Operation getTile = findRequiredOperation(offering, "GetTile");
 		
-		Map<String, String> params = parseParameters(offering);
+		Map<String, String> params = parseParameters(offering.getExtensions());
 		
 		TileServer server = new Simple3857TileServer(getTile.getRequestURL(), getTile.getType(), params);
 		

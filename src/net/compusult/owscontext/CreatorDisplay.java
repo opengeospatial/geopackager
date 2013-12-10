@@ -60,6 +60,10 @@ public class CreatorDisplay {
 		this.mmPerPixel = mmPerPixel;
 	}
 
+	public List<Node> getExtensions() {
+		return extensions;
+	}
+
 	@Override
 	public String toString() {
 		return "CreatorDisplay [pixelWidth=" + pixelWidth + ", pixelHeight="
@@ -106,7 +110,4 @@ public class CreatorDisplay {
 		return true;
 	}
 	
-	public List<Node> getExtensions() {
-		return extensions;
-	}
 }

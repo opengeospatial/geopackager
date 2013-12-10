@@ -57,6 +57,10 @@ public class Content {
 	public void setActualContent(Object actualContent) {
 		this.actualContent = actualContent;
 	}
+	
+	public List<Node> getExtensions() {
+		return extensions;
+	}
 
 	@Override
 	public String toString() {
@@ -99,10 +103,6 @@ public class Content {
 		} else if (!url.equals(other.url))
 			return false;
 		return true;
-	}
-	
-	public List<Node> getExtensions() {
-		return extensions;
 	}
 	
 }

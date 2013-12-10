@@ -89,10 +89,10 @@ public abstract class AbstractHarvester implements Harvester {
 		return tableName;
 	}
 	
-	protected Map<String, String> parseParameters(Offering offering) throws GeoPackageException {
+	protected Map<String, String> parseParameters(List<Node> extensionElements) throws GeoPackageException {
 		Map<String, String> params = new HashMap<String, String>();
 		
-		for (Node node : offering.getExtensions()) {
+		for (Node node : extensionElements) {
 			Element extension = (Element) node;
 			
 			List<Element> parameters = domUtil.findChildrenNamed(extension, TESTBED_NS, EXTENSION_PARAM);

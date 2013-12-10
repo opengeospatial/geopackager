@@ -47,7 +47,7 @@ public class WMSHarvester extends AbstractWMTSHarvester {
 
 		Operation getMap = findRequiredOperation(offering, "GetMap");
 		
-		Map<String, String> params = parseParameters(offering);
+		Map<String, String> params = parseParameters(offering.getExtensions());
 		
 		Reference getMapRequest = new Reference(getMap.getRequestURL());
 		
@@ -76,6 +76,10 @@ public class WMSHarvester extends AbstractWMTSHarvester {
 		
 		String requestedTileFormat = query.getFirstValue("FORMAT", "image/png");
 		
+		/*
+		 * If neither fromMatrix nor toMatrix is specified, then act as if we were
+		 * told to harvest just the specific "tile" identified by the GetMap URL.
+		 */
 		if (params.get("fromMatrix") == null && params.get("toMatrix") == null) {
 			params.put("fromMatrix", "0");
 			params.put("toMatrix", "0");

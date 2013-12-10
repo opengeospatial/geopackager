@@ -34,16 +34,16 @@ public class ProgressTracker {
 		this.itemCount = itemCount;
 	}
 
-	public void newItem() {
+	public synchronized void newItem() {
 		++ thisItem;
 		this.percentComplete = 0;
 	}
 	
-	public void setProgress(int percentage) {
+	public synchronized void setProgress(int percentage) {
 		this.percentComplete = percentage;
 	}
 	
-	public int getPercentComplete() {
+	public synchronized int getPercentComplete() {
 		// 75% of the way through item 2 of 3 means (200 + 75) / 3 = 92
 		return (int) ((100.0 * thisItem + percentComplete) / itemCount + 0.5);
 	}

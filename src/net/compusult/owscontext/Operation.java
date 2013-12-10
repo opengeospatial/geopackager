@@ -85,6 +85,10 @@ public class Operation {
 		this.result = result;
 	}
 
+	public List<Node> getExtensions() {
+		return extensions;
+	}
+
 	@Override
 	public String toString() {
 		return "Operation [code=" + operationCode
@@ -152,7 +156,4 @@ public class Operation {
 		return true;
 	}
 	
-	public List<Node> getExtensions() {
-		return extensions;
-	}
 }

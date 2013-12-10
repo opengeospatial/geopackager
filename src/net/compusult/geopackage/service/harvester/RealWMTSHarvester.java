@@ -42,7 +42,7 @@ public class RealWMTSHarvester extends AbstractWMTSHarvester {
 
 		Operation getCaps = findRequiredOperation(offering, "GetCapabilities");
 		
-		Map<String, String> params = parseParameters(offering);
+		Map<String, String> params = parseParameters(offering.getExtensions());
 		
 		TileServer wmts = new RealWMTS(getCaps.getRequestURL(), params);
 		

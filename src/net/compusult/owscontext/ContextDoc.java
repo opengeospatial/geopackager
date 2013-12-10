@@ -157,6 +157,10 @@ public class ContextDoc {
 		return keywords;
 	}
 
+	public List<Node> getExtensions() {
+		return extensions;
+	}
+
 	@Override
 	public String toString() {
 		return "ContextDoc [language=" + language + ", id=" + id + ", title="
@@ -288,10 +292,6 @@ public class ContextDoc {
 		} else if (!updateDate.equals(other.updateDate))
 			return false;
 		return true;
-	}
-
-	public List<Node> getExtensions() {
-		return extensions;
 	}
 
 }

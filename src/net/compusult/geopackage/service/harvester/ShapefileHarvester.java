@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -319,7 +320,7 @@ public class ShapefileHarvester extends AbstractHarvester {
 		CoordinateReferenceSystem crs;
 		try {
 			is = new URL(url).openStream();
-			Reader r = new InputStreamReader(is);
+			Reader r = new InputStreamReader(is, Charset.forName("ISO-8859-1"));
 			char[] line = new char[1024];
 			int n;
 			while ((n = r.read(line)) > 0) {

@@ -18,6 +18,11 @@
    
 package net.compusult.geopackage.service.harvester;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,14 +49,16 @@ import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
+import org.geotools.referencing.CRS;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.referencing.ReferenceIdentifier;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.w3c.dom.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class ShapefileHarvester extends AbstractHarvester {
 	
@@ -220,12 +227,16 @@ public class ShapefileHarvester extends AbstractHarvester {
 			if (dataStore == null) {
 				throw new GeoPackageException("Could not obtain GeoTools datastore for " + content.getUrl());
 			}
-//			GeometryFactory x = dataStore.getGeometryFactory();
-//			String srid = String.valueOf(x.getSRID());
-//			if (layerInfo.getCrs() != null && !srid.equals(layerInfo.getCrs())) {
-//				throw new GeoPackageException("SRID mismatch within one Shapefile layer: " + layerInfo.getCrs() + " vs. " + srid);
-//			}
-//			layerInfo.setCrs(srid);
+			
+			/*
+			 * If there's an accompanying .prj file we need to parse it ourselves
+			 * since GeoTools doesn't.
+			 */
+			String srid = inferCRSFromPrjFile(content.getUrl());
+			if (layerInfo.getCrs() != null && !srid.equals(layerInfo.getCrs())) {
+				throw new GeoPackageException("SRID mismatch within one Shapefile layer: " + layerInfo.getCrs() + " vs. " + srid);
+			}
+			layerInfo.setCrs(srid);
 			
 			String[] typeNames = dataStore.getTypeNames();
 			for (String typeName : typeNames) {
@@ -295,6 +306,41 @@ public class ShapefileHarvester extends AbstractHarvester {
 		
 		result.putAll(newEntries);
 		return result;
+	}
+	
+	private String inferCRSFromPrjFile(String url) {
+		if (url.endsWith(".shp")) {
+			url = url.substring(0, url.length() - 4);
+		}
+		url += ".prj";
+		
+		StringBuilder buf = new StringBuilder();
+		InputStream is = null;
+		CoordinateReferenceSystem crs;
+		try {
+			is = new URL(url).openStream();
+			Reader r = new InputStreamReader(is);
+			char[] line = new char[1024];
+			int n;
+			while ((n = r.read(line)) > 0) {
+				buf.append(line, 0, n);
+			}
+			crs = CRS.parseWKT(buf.toString());
+			
+		} catch (Exception e) {
+			if (is != null) {
+				try { is.close(); } catch (IOException e1) {}
+			}
+			return null;			// can't determine CRS
+		}
+		
+		ReferenceIdentifier ri = crs.getName();
+		String srid = ri.getCode();
+		if (srid.endsWith("WGS_1984")) {
+			srid = "4326";
+		}
+		
+		return srid;
 	}
 	
 }

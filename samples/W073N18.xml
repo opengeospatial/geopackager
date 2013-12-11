@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<wps:Execute service="WPS" version="1.0.0" xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsExecute_request.xsd">
+	<ows:Identifier>GeoPackaging</ows:Identifier>
+	<wps:DataInputs>
+		<wps:Input>
+			<ows:Identifier>OWSContext</ows:Identifier>
+			<ows:Title>Instructions for GeoPackager</ows:Title>
+			<wps:Data>
+				<wps:ComplexData mimeType="application/atom+xml" encoding="ISO-8859-1">
+<feed xmlns="http://www.w3.org/2005/Atom"
+	xmlns:atom="http://www.w3.org/2005/Atom" 
+	xmlns:dc="http://purl.org/dc/elements/1.1/" 
+	xmlns:georss="http://www.georss.org/georss" 
+	xmlns:gml="http://www.opengis.net/gml" 
+	xmlns:owc="http://www.opengis.net/owc/1.0" 
+	xml:lang="en">
+	<atom:link rel="profile"
+		href="http://www.opengis.net/spec/owc-atom/1.0/req/core"
+		title="This file is compliant with version 1.0 of OGC Context"/>
+	<id>http://www.opengis.net/owc/1.0/examples/shapes</id>
+	<title>Shapefiles from MGCP (public domain)</title>
+	<author>
+		<name>Sean Hogan</name>
+	</author>
+	<updated>2013-12-11T17:00:00Z</updated>
+	<georss:where>
+		<gml:Envelope srsName="EPSG:4326" srsDimension="2">
+			<gml:lowerCorner>-73 18</gml:lowerCorner>
+			<gml:upperCorner>-72 19</gml:upperCorner>
+		</gml:Envelope>
+	</georss:where>
+	<entry>
+		<id>linear_features</id>
+		<title>Linear Features</title>
+		<updated>2013-12-11T17:00:00Z</updated>
+		<dc:publisher>MGCP</dc:publisher>
+		<content type="text">Multiple shapefiles comprising the Port-au-Prince area of Haiti</content>
+		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
+			<owc:content type="application/x-shapefile" href="file:///users/sean/Projects/IGW/W.zip">
+			    <testbed:parameters xmlns:testbed="http://schemas.compusult.net/ows10/ows-context">
+					<testbed:parameter name="default-geometries" value="exclude" />
+					<testbed:parameter name="include-geometry" value="multilinestring" />
+				</testbed:parameters>
+			</owc:content>
+		</owc:offering>
+	</entry>
+	<entry>
+		<id>point_features</id>
+		<title>Point Features</title>
+		<updated>2013-12-11T17:00:00Z</updated>
+		<dc:publisher>MGCP</dc:publisher>
+		<content type="text">Multiple shapefiles comprising the Port-au-Prince area of Haiti</content>
+		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
+			<owc:content type="application/x-shapefile" href="file:///users/sean/Projects/IGW/W.zip">
+			    <testbed:parameters xmlns:testbed="http://schemas.compusult.net/ows10/ows-context">
+					<testbed:parameter name="default-geometries" value="exclude" />
+					<testbed:parameter name="include-geometry" value="point" />
+				</testbed:parameters>
+			</owc:content>
+		</owc:offering>
+	</entry>
+	<entry>
+		<id>polygon_features</id>
+		<title>Polygon Features</title>
+		<updated>2013-12-11T17:00:00Z</updated>
+		<dc:publisher>MGCP</dc:publisher>
+		<content type="text">Multiple shapefiles comprising the Port-au-Prince area of Haiti</content>
+		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
+			<owc:content type="application/x-shapefile" href="file:///users/sean/Projects/IGW/W.zip">
+			    <testbed:parameters xmlns:testbed="http://schemas.compusult.net/ows10/ows-context">
+					<testbed:parameter name="default-geometries" value="exclude" />
+					<testbed:parameter name="include-geometry" value="multipolygon" />
+				</testbed:parameters>
+			</owc:content>
+		</owc:offering>
+	</entry>
+</feed>
+				</wps:ComplexData>
+			</wps:Data>
+		</wps:Input>
+	</wps:DataInputs>
+	<wps:ResponseForm>
+		<wps:ResponseDocument lineage="false"> <!-- storeExecuteResponse="true" -->
+			<wps:Output asReference="true">
+				<ows:Identifier>GeoPackage</ows:Identifier>
+			</wps:Output>
+		</wps:ResponseDocument>
+	</wps:ResponseForm>
+</wps:Execute>

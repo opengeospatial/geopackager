@@ -37,7 +37,7 @@
 		<dc:publisher>OGC</dc:publisher>
 		<content type="text">Buildings from http://www.rajsingh.org/wmstestdata/shapefile/</content>
 		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
-			<owc:content type="application/x-shapefile" href="http://www.rajsingh.org/wmstestdata/shapefile/Buildings"/>
+			<owc:content type="application/x-shapefile" href="http://www.rajsingh.org/wmstestdata/shapefile/Buildings.zip"/>
 		</owc:offering>
 	</entry>
 	<entry>
@@ -47,7 +47,7 @@
 		<dc:publisher>OGC</dc:publisher>
 		<content type="text">Lakes from http://www.rajsingh.org/wmstestdata/shapefile/</content>
 		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
-			<owc:content type="application/x-shapefile" href="http://www.rajsingh.org/wmstestdata/shapefile/Lakes"/>
+			<owc:content type="application/x-shapefile" href="http://www.rajsingh.org/wmstestdata/shapefile/Lakes.zip"/>
 		</owc:offering>
 	</entry>
 	<entry>
@@ -57,7 +57,7 @@
 		<dc:publisher>OGC</dc:publisher>
 		<content type="text">Forests from http://www.rajsingh.org/wmstestdata/shapefile/</content>
 		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
-			<owc:content type="application/x-shapefile" href="http://www.rajsingh.org/wmstestdata/shapefile/Forests"/>
+			<owc:content type="application/x-shapefile" href="http://www.rajsingh.org/wmstestdata/shapefile/Forests.zip"/>
 		</owc:offering>
 	</entry>
 </feed>

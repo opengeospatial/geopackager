@@ -21,6 +21,7 @@ package net.compusult.geopackage.service.harvester;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -72,12 +73,12 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 	
 	private static final Logger LOG = Logger.getLogger(ShapefileHarvester.class);
 	
-	private final Map<String, ShapefileInfo> shapefiles;
+	private final List<ShapefileInfo> shapefiles;
 	private String workDirectory;
 	
 	public ShapefileHarvester(ProgressTracker progressTracker) {
 		super(progressTracker);
-		this.shapefiles = new HashMap<String, ShapefileInfo>();
+		this.shapefiles = new ArrayList<ShapefileInfo>();
 	}
 	
 	@Required
@@ -119,7 +120,7 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			 * Multiple effects:
 			 * 1. Count the number of feature types.
 			 * 2. Unzip a zipped shapefile with its sidecar files.
-			 * 3. Cache information about the shapefile.
+			 * 3. Cache information about the shapefile in a list.
 			 * 3. Create a coalesced data model that is the union of all of them.
 			 */
 			getProgressTracker().setItemCount(createFeatureTable(gpkg, offering, layerInfo));
@@ -130,12 +131,7 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			throw new GeoPackageException("Error processing shapefile", e);
 		}
 		
-		for (Content content : offering.getContents()) {
-			
-			ShapefileInfo info = shapefiles.get(content.getUrl());
-			if (info == null) {
-				throw new IllegalStateException("Failed to find info for the shapefile we just processed!");
-			}
+		for (ShapefileInfo info : shapefiles) {
 			
 			Map<String, String> params = parseParameters(info.getExtensions());
 			
@@ -263,62 +259,63 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 		for (Content content : offering.getContents()) {
 			Map<String, Object> connect = new HashMap<String, Object>();
 			
-			ShapefileInfo info = retrieveZip(content.getUrl());
-			info.setExtensions(content.getExtensions());
-			shapefiles.put(content.getUrl(), info);
-			
-			connect.put("url", info.getLocalUrl());
-			
-			DataStore dataStore = DataStoreFinder.getDataStore(connect);
-			if (dataStore == null) {
-				throw new GeoPackageException("Could not obtain GeoTools datastore for " + content.getUrl() + " (stored locally as " + info.getLocalUrl() + ")");
-			}
-			
-			/*
-			 * If there's an accompanying .prj file we need to parse it ourselves
-			 * since GeoTools doesn't.
-			 */
-			String srid = inferCRSFromPrjFile(info.getLocalUrl());
-			if (layerInfo.getCrs() != null && !srid.equals(layerInfo.getCrs())) {
-				throw new GeoPackageException("SRID mismatch within one Shapefile layer: " + layerInfo.getCrs() + " vs. " + srid);
-			}
-			layerInfo.setCrs(srid);
-			
-			String[] typeNames = dataStore.getTypeNames();
-			for (String typeName : typeNames) {
-			
-				SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
-				SimpleFeatureType featureType = featureSource.getSchema();
+			for (ShapefileInfo info : retrieveShapefiles(content.getUrl())) {
+				info.setExtensions(content.getExtensions());
+				shapefiles.add(info);
+				
+				connect.put("url", info.getLocalUrl());
+				
+				DataStore dataStore = DataStoreFinder.getDataStore(connect);
+				if (dataStore == null) {
+					throw new GeoPackageException("Could not obtain GeoTools datastore for " + content.getUrl() + " (stored locally as " + info.getLocalUrl() + ")");
+				}
 				
 				/*
-				 * Map from the feature type's attribute descriptors to fields in our new
-				 * SQLite table.  Type matching is "best guess" but SQLite's type flexibility
-				 * works to our advantage.
+				 * If there's an accompanying .prj file we need to parse it ourselves
+				 * since GeoTools doesn't.
 				 */
-				for (AttributeDescriptor descript : featureType.getAttributeDescriptors()) {
-					String colName = descript.getLocalName().toLowerCase();
-					if (! foundNames.contains(colName)) {
-						Class<?> binding = descript.getType().getBinding();
-						ColumnType colType = null;
-						String geomType = null;
-						if (binding == Integer.class || binding == Long.class) {
-							colType = ColumnType.INTEGER;
-						} else if (Number.class.isAssignableFrom(binding)) {
-							colType = ColumnType.REAL;
-						} else if (Geometry.class.isAssignableFrom(binding) || org.opengis.geometry.Geometry.class.isAssignableFrom(binding)) {
-							colType = ColumnType.GEOMETRY;
-							geomType = "GEOMETRY";		// can we be more precise?
-						} else if (binding == String.class) {
-							colType = ColumnType.TEXT;
+				String srid = inferCRSFromPrjFile(info.getLocalUrl());
+				if (layerInfo.getCrs() != null && !srid.equals(layerInfo.getCrs())) {
+					throw new GeoPackageException("SRID mismatch within one Shapefile layer: " + layerInfo.getCrs() + " vs. " + srid);
+				}
+				layerInfo.setCrs(srid);
+				
+				String[] typeNames = dataStore.getTypeNames();
+				for (String typeName : typeNames) {
+				
+					SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
+					SimpleFeatureType featureType = featureSource.getSchema();
+					
+					/*
+					 * Map from the feature type's attribute descriptors to fields in our new
+					 * SQLite table.  Type matching is "best guess" but SQLite's type flexibility
+					 * works to our advantage.
+					 */
+					for (AttributeDescriptor descript : featureType.getAttributeDescriptors()) {
+						String colName = descript.getLocalName().toLowerCase();
+						if (! foundNames.contains(colName)) {
+							Class<?> binding = descript.getType().getBinding();
+							ColumnType colType = null;
+							String geomType = null;
+							if (binding == Integer.class || binding == Long.class) {
+								colType = ColumnType.INTEGER;
+							} else if (Number.class.isAssignableFrom(binding)) {
+								colType = ColumnType.REAL;
+							} else if (Geometry.class.isAssignableFrom(binding) || org.opengis.geometry.Geometry.class.isAssignableFrom(binding)) {
+								colType = ColumnType.GEOMETRY;
+								geomType = "GEOMETRY";		// can we be more precise?
+							} else if (binding == String.class) {
+								colType = ColumnType.TEXT;
+							}
+		
+							featCols.add(new FeatureColumnInfo(colType, colName, false, false, geomType));
+							foundNames.add(colName);
 						}
-	
-						featCols.add(new FeatureColumnInfo(colType, colName, false, false, geomType));
-						foundNames.add(colName);
 					}
 				}
+				
+				items += typeNames.length;
 			}
-			
-			items += typeNames.length;
 		}
 		
 		/*
@@ -389,17 +386,26 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 		return srid;
 	}
 	
-	private ShapefileInfo retrieveZip(String url) throws IOException {
+	private static final FilenameFilter ONLY_SHAPEFILES = new FilenameFilter() {
+		@Override
+		public boolean accept(File dir, String name) {
+			return name.endsWith(".shp");
+		}
+	};
+	
+	private List<ShapefileInfo> retrieveShapefiles(String url) throws IOException {
 		
-		ShapefileInfo info = new ShapefileInfo();
+		final List<ShapefileInfo> result = new ArrayList<ShapefileInfo>();
 
 		if (url.endsWith(".shp")) {
 			/*
 			 * Simple case: the URL is that of a .shp file directly.
 			 */
+			ShapefileInfo info = new ShapefileInfo();
 			info.setLocalUrl(url);
+			result.add(info);
 			
-		} else {
+		} else if (url.endsWith(".zip")) {
 			/*
 			 * Explode the zip into a new subdirectory of the work directory.
 			 */
@@ -407,18 +413,12 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			File workDir = new File(workDirectory, dirName);
 			workDir.mkdir();
 			
-			String shapefile = null;
-			
 			ZipInputStream zis = null;
 			try {
 				zis = new ZipInputStream(new BufferedInputStream(new URL(url).openStream()));
 				ZipEntry entry;
 				while ((entry = zis.getNextEntry()) != null) {
 					File out = new File(workDir, entry.getName());
-					if (entry.getName().endsWith(".shp")) {
-						shapefile = entry.getName();
-					}
-					
 					FileOutputStream fos = new FileOutputStream(out);
 					
 					byte[] line = new byte[1024];
@@ -429,17 +429,39 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 					
 					zis.closeEntry();
 				}
+				zis.close();
+				zis = null;
 				
-				info.setLocalUrl(new URL("file://" + new File(workDir, shapefile).getAbsolutePath()).toString());
+				/*
+				 * Build a list of the resulting .shp files.
+				 */
+				for (File shp : workDir.listFiles(ONLY_SHAPEFILES)) {
+					ShapefileInfo info = new ShapefileInfo();
+					info.setLocalUrl(new URL("file://" + shp.getAbsolutePath()).toString());
+					result.add(info);
+				}
 				
 			} finally {
 				if (zis != null) {
 					try { zis.close(); } catch (IOException e1) {}
 				}
 			}
+			
+		} else {
+			/*
+			 * Build a list of all the .shp files in what we assume is a directory.
+			 */
+			if (url.startsWith("file://")) {
+				url = url.substring(7);
+			}
+			for (File shp : new File(url).listFiles(ONLY_SHAPEFILES)) {
+				ShapefileInfo info = new ShapefileInfo();
+				info.setLocalUrl(new URL("file://" + shp.getAbsolutePath()).toString());
+				result.add(info);
+			}
 		}
 		
-		return info;
+		return result;
 	}
 	
 	private static class ShapefileInfo {

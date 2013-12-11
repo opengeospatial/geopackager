@@ -18,6 +18,9 @@
    
 package net.compusult.geopackage.service.harvester;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,6 +34,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.geopackage.service.geopackager.ProgressTracker;
@@ -46,7 +52,6 @@ import net.compusult.owscontext.Resource;
 import org.apache.log4j.Logger;
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
-import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
@@ -57,21 +62,49 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Required;
 import org.w3c.dom.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-public class ShapefileHarvester extends AbstractHarvester {
+public class ShapefileHarvester extends AbstractFeatureHarvester implements InitializingBean {
 	
 	private static final Logger LOG = Logger.getLogger(ShapefileHarvester.class);
 	
-	// how many features to insert before committing
-	private static final int MAX_UNCOMMITTED_FEATURES = 250;
+	private final Map<String, ShapefileInfo> shapefiles;
+	private String workDirectory;
 	
 	public ShapefileHarvester(ProgressTracker progressTracker) {
 		super(progressTracker);
+		this.shapefiles = new HashMap<String, ShapefileInfo>();
 	}
 	
+	@Required
+	public void setWorkDirectory(String workDirectory) {
+		this.workDirectory = workDirectory;
+	}
+	
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		/*
+		 * Recursively get rid of leftover files from a previous run
+		 * (but not the workDirectory itself!).
+		 */
+		deleteDirectory(new File(workDirectory));
+	}
+	
+	private void deleteDirectory(File dir) {
+		for (File existingFile : dir.listFiles()) {
+			if (existingFile.isFile()) {
+				existingFile.delete();
+			} else {
+				deleteDirectory(existingFile);
+				existingFile.delete();
+			}
+		}
+	}
+
 	@Override
 	public void harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
 		
@@ -83,9 +116,11 @@ public class ShapefileHarvester extends AbstractHarvester {
 		
 		try {
 			/*
-			 * Two effects:
+			 * Multiple effects:
 			 * 1. Count the number of feature types.
-			 * 2. Create a coalesced data model that is the union of all of them.
+			 * 2. Unzip a zipped shapefile with its sidecar files.
+			 * 3. Cache information about the shapefile.
+			 * 3. Create a coalesced data model that is the union of all of them.
 			 */
 			getProgressTracker().setItemCount(createFeatureTable(gpkg, offering, layerInfo));
 		} catch (GeoPackageException e) {
@@ -97,7 +132,12 @@ public class ShapefileHarvester extends AbstractHarvester {
 		
 		for (Content content : offering.getContents()) {
 			
-			Map<String, String> params = parseParameters(content.getExtensions());
+			ShapefileInfo info = shapefiles.get(content.getUrl());
+			if (info == null) {
+				throw new IllegalStateException("Failed to find info for the shapefile we just processed!");
+			}
+			
+			Map<String, String> params = parseParameters(info.getExtensions());
 			
 			/*
 			 * Set defaultIsExclude true if and only if "default-geometries" is set
@@ -108,7 +148,7 @@ public class ShapefileHarvester extends AbstractHarvester {
 			boolean defaultIsExclude = "exclude".equals(defaultIsExcludeStr);
 			
 			Map<String, Object> connect = new HashMap<String, Object>();
-			connect.put("url", content.getUrl());
+			connect.put("url", info.getLocalUrl());
 			
 			int uncommittedFeatures = 0;
 			
@@ -222,18 +262,23 @@ public class ShapefileHarvester extends AbstractHarvester {
 		
 		for (Content content : offering.getContents()) {
 			Map<String, Object> connect = new HashMap<String, Object>();
-			connect.put("url", content.getUrl());
 			
-			ShapefileDataStore dataStore = (ShapefileDataStore) DataStoreFinder.getDataStore(connect);
+			ShapefileInfo info = retrieveZip(content.getUrl());
+			info.setExtensions(content.getExtensions());
+			shapefiles.put(content.getUrl(), info);
+			
+			connect.put("url", info.getLocalUrl());
+			
+			DataStore dataStore = DataStoreFinder.getDataStore(connect);
 			if (dataStore == null) {
-				throw new GeoPackageException("Could not obtain GeoTools datastore for " + content.getUrl());
+				throw new GeoPackageException("Could not obtain GeoTools datastore for " + content.getUrl() + " (stored locally as " + info.getLocalUrl() + ")");
 			}
 			
 			/*
 			 * If there's an accompanying .prj file we need to parse it ourselves
 			 * since GeoTools doesn't.
 			 */
-			String srid = inferCRSFromPrjFile(content.getUrl());
+			String srid = inferCRSFromPrjFile(info.getLocalUrl());
 			if (layerInfo.getCrs() != null && !srid.equals(layerInfo.getCrs())) {
 				throw new GeoPackageException("SRID mismatch within one Shapefile layer: " + layerInfo.getCrs() + " vs. " + srid);
 			}
@@ -342,6 +387,85 @@ public class ShapefileHarvester extends AbstractHarvester {
 		}
 		
 		return srid;
+	}
+	
+	private ShapefileInfo retrieveZip(String url) throws IOException {
+		
+		ShapefileInfo info = new ShapefileInfo();
+
+		if (url.endsWith(".shp")) {
+			/*
+			 * Simple case: the URL is that of a .shp file directly.
+			 */
+			info.setLocalUrl(url);
+			
+		} else {
+			/*
+			 * Explode the zip into a new subdirectory of the work directory.
+			 */
+			String dirName = UUID.randomUUID().toString();
+			File workDir = new File(workDirectory, dirName);
+			workDir.mkdir();
+			
+			String shapefile = null;
+			
+			ZipInputStream zis = null;
+			try {
+				zis = new ZipInputStream(new BufferedInputStream(new URL(url).openStream()));
+				ZipEntry entry;
+				while ((entry = zis.getNextEntry()) != null) {
+					File out = new File(workDir, entry.getName());
+					if (entry.getName().endsWith(".shp")) {
+						shapefile = entry.getName();
+					}
+					
+					FileOutputStream fos = new FileOutputStream(out);
+					
+					byte[] line = new byte[1024];
+					int n;
+					while ((n = zis.read(line)) > 0) {
+						fos.write(line, 0, n);
+					}
+					
+					zis.closeEntry();
+				}
+				
+				info.setLocalUrl(new URL("file://" + new File(workDir, shapefile).getAbsolutePath()).toString());
+				
+			} finally {
+				if (zis != null) {
+					try { zis.close(); } catch (IOException e1) {}
+				}
+			}
+		}
+		
+		return info;
+	}
+	
+	private static class ShapefileInfo {
+		
+		private List<Node> extensions;
+		private String localUrl;
+		
+		public ShapefileInfo() {
+		}
+
+		public List<Node> getExtensions() {
+			return extensions;
+		}
+
+		public void setExtensions(List<Node> extensions) {
+			this.extensions = extensions;
+		}
+
+		public String getLocalUrl() {
+			return localUrl;
+		}
+
+		public void setLocalUrl(String localUrl) {
+			this.localUrl = localUrl;
+		}
+		
 	}
 	
 }

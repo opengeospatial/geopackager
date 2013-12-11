@@ -50,7 +50,9 @@ public class GeoPackagingPool implements InitializingBean {
 		 * get rid of them.
 		 */
 		for (File existingFile : new File(workDirectory).listFiles()) {
-			existingFile.delete();
+			if (existingFile.isFile()) {
+				existingFile.delete();
+			}
 		}
 	}
 

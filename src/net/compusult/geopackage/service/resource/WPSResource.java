@@ -63,6 +63,7 @@ public abstract class WPSResource extends ServerResource {
 	protected static final String XML_NS = "http://www.w3.org/1999/xhtml";
 	protected static final String OWS_NS = "http://www.opengis.net/ows/1.1";
 	protected static final String WPS_NS = "http://www.opengis.net/wps/1.0.0";
+	protected static final String XLINK_NS = "http://www.w3.org/1999/xlink";
 	
 	protected static final String IDENT_PROCESS_GEOPACKAGE = "GeoPackaging";
 	protected static final String IDENT_OWSCONTEXT = "OWSContext";

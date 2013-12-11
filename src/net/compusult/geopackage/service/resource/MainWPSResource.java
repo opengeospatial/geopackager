@@ -227,7 +227,6 @@ public class MainWPSResource extends WPSResource {
 
 		GeoPackager packager = (GeoPackager) applicationContext.getBean("geopackager", owsContext, passPhrase);
 
-//		Element geoPackageOutputElement = null;
 		boolean contextAsReference = false;
 		
 		for (Element outputElement : outputElementList) {
@@ -236,7 +235,7 @@ public class MainWPSResource extends WPSResource {
 			// identElement cannot be null
 			identifier = domUtil.nodeTextContent(identElement);
 			if (IDENT_OUTPUT_GPKG.equals(identifier)) {
-//				geoPackageOutputElement = outputElement;
+				// nothing to do
 			} else if (IDENT_OWSCONTEXT.equals(identifier)) {
 				contextAsReference = asReference;
 			} else {
@@ -278,47 +277,50 @@ public class MainWPSResource extends WPSResource {
 	}
 	
 	private ContextDoc readContextDoc(Element inputElement) throws ResourceException {
-		// One or the other of these will be present, because the doc is schema-valid.
+		Element feedElement;
+		String mimeType;
+
+		// One or the other of Data or Reference will be present, because the doc is schema-valid.
 		Element refElement = domUtil.findFirstChildNamed(inputElement, WPS_NS, "Reference");
 		if (refElement != null) {
-			throw new ResourceException(Status.SERVER_ERROR_NOT_IMPLEMENTED, "Input type 'Reference' is not supported yet");
-		}
-		
-		Element dataElement = domUtil.findFirstChildNamed(inputElement, WPS_NS, "Data");
-		if (dataElement == null) {
-			throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Input type 'Data' is required");
-		}
-		
-		Element complexDataElement = domUtil.findFirstChildNamed(dataElement, WPS_NS, "ComplexData");
-		if (complexDataElement == null) {
-			// some other kind of <Data> subelement must have been provided
-			throw new ResourceException(Status.SERVER_ERROR_NOT_IMPLEMENTED, "Only 'ComplexData' input is supported for 'OWSContext'");
-		}
-		
-		/*
-		 * Decode the OWS Context document payload of this input.
-		 * TODO figure out how a JSON-encoded context document would look.
-		 * We might need to push some of the following logic down into the AtomCodec itself.
-		 */
-		String mimeType = complexDataElement.getAttribute("mimeType");
-		AtomCodec contextCodec;
-		try {
-			contextCodec = (AtomCodec) contextCodecFactory.createCodec(mimeType);
-		} catch (EncodingException e) {
-			throw new ResourceException(Status.SERVER_ERROR_NOT_IMPLEMENTED, "Only '" + AtomCodec.MIME_TYPE + "' MIME type is supported", e);
-		}
-		
-		// Either a <feed> or <entry> element will be at the top level of the input
-		Element feedElement;
-		String href = domUtil.getAttributeValue(complexDataElement, "href");
-		if (href != null) {
+			
+			// The schema says this should be in the xlink namespace, unlike OutputReferenceType.href for example
+			String href = domUtil.getAttributeValue(refElement, XLINK_NS, "href");
+			
+			mimeType = domUtil.getAttributeValue(refElement, "mimeType");
+			if (mimeType == null) {
+				// Hmm, should this really be the default?
+				mimeType = AtomCodec.MIME_TYPE;
+			}
+			
+			Document contextDoc;
 			try {
-				Document contextDoc = new XMLFetcher(href).fetch();
-				feedElement = contextDoc.getDocumentElement();
+				contextDoc = new XMLFetcher(href).fetch();
 			} catch (IOException e) {
 				throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Failed to retrieve external OWS Context document", e);
 			}
+			
+			feedElement = contextDoc.getDocumentElement();
+
 		} else {
+			Element dataElement = domUtil.findFirstChildNamed(inputElement, WPS_NS, "Data");
+			if (dataElement == null) {
+				throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Input type 'Data' is required");
+			}
+			
+			Element complexDataElement = domUtil.findFirstChildNamed(dataElement, WPS_NS, "ComplexData");
+			if (complexDataElement == null) {
+				// some other kind of <Data> subelement must have been provided
+				throw new ResourceException(Status.SERVER_ERROR_NOT_IMPLEMENTED, "Only 'ComplexData' input is supported for 'OWSContext'");
+			}
+			
+			/*
+			 * Decode the OWS Context document payload of this input.
+			 * TODO figure out how a JSON-encoded context document would look.
+			 * We might need to push some of the following logic down into the AtomCodec itself.
+			 */
+			mimeType = complexDataElement.getAttribute("mimeType");
+			// Either a <feed> or <entry> element will be at the top level of the input
 			feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "feed");
 			if (feedElement == null) {
 				feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "entry");
@@ -326,6 +328,7 @@ public class MainWPSResource extends WPSResource {
 		}
 		
 		try {
+			AtomCodec contextCodec = (AtomCodec) contextCodecFactory.createCodec(mimeType);
 			return contextCodec.decode(feedElement);
 		} catch (EncodingException e) {
 			throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Failed to parse OWS Context document", e);

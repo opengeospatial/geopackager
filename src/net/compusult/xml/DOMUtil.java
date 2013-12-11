@@ -43,6 +43,21 @@ public class DOMUtil {
 	}
 	
 	/**
+	 * Like elem.getAttributeNS(namespace, attr), but returns null instead of "" if the attribute is not set.
+	 * 
+	 * @param elem
+	 * @param attr
+	 * @return
+	 */
+	public String getAttributeValue(Element elem, String namespace, String attr) {
+		String value = elem.getAttributeNS(namespace, attr);
+		if ("".equals(value) && elem.getAttributeNodeNS(namespace, attr) == null) {
+			return null;
+		}
+		return value;
+	}
+	
+	/**
 	 * @param start
 	 * @param ns
 	 * @param local

@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.geopackage.service.geopackager.ProgressTracker;
@@ -46,7 +47,7 @@ import org.w3c.dom.Element;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
-public class KMLHarvester extends AbstractHarvester {
+public class KMLHarvester extends AbstractFeatureHarvester {
 	
 	private static final Logger LOG = Logger.getLogger(KMLHarvester.class);
 	
@@ -66,6 +67,8 @@ public class KMLHarvester extends AbstractHarvester {
 	public void harvest(final GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
 		
 		final String tableName = sanitizeTableName(resource.getId());
+		
+		final Map<String, String> params = parseParameters(offering.getExtensions());
 		
 		final LayerInformation layerInfo = new LayerInformation(gpkg, Type.FEATURES, tableName);
 		layerInfo.setTitle(resource.getTitle().getText());
@@ -103,6 +106,8 @@ public class KMLHarvester extends AbstractHarvester {
 			}
 
 			if (kml != null) {
+				final AtomicInteger uncommittedFeatures = new AtomicInteger(0);
+				
 				findPlacemarks(kml, new PlacemarkCallback() {
 					@Override
 					public void onPlacemark(Element placemark) {
@@ -199,18 +204,42 @@ public class KMLHarvester extends AbstractHarvester {
 						}
 
 						if (geomString != null) {
-							Map<String,String> fields = new HashMap<String, String>();
-							fields.put("featureid", id);
-							fields.put("name", name);
-							fields.put("desc", desc);
-							fields.put("type", type);
-							fields.put("geom", geomString);
+							/*
+							 * Set defaultIsExclude true if and only if "default-geometries" is set
+							 * to "exclude".  If that parameter is unset or set to something else,
+							 * we default to including all geometries.
+							 */
+							String defaultIsExcludeStr = params.get("default-geometries");
+							boolean defaultIsExclude = "exclude".equals(defaultIsExcludeStr);
+							boolean skip = defaultIsExclude;
 							
-							try {
-								gpkg.addVectorFeature(tableName, fields, Collections.singleton("geom"));
-								gpkg.commit();
-							} catch (GeoPackageException e) {
-								LOG.warn("Failed to add feature with ID '" + id + "'", e);
+							String geomType = geomString.substring(0, geomString.indexOf('(') - 1);
+							if (!defaultIsExclude && params.containsKey("exclude-" + geomType)) {
+								// We are including everything except this specific type of geometry
+								skip = true;
+							} else if (defaultIsExclude && params.containsKey("include-" + geomType)) {
+								// We are excluding everything except this specific type of geometry
+								skip = false;
+							}
+							
+							if (!skip) {
+								Map<String,String> fields = new HashMap<String, String>();
+								fields.put("featureid", id);
+								fields.put("name", name);
+								fields.put("desc", desc);
+								fields.put("type", type);
+								fields.put("geom", geomString);
+								
+								try {
+									gpkg.addVectorFeature(tableName, fields, Collections.singleton("geom"));
+									
+									if (uncommittedFeatures.incrementAndGet() == MAX_UNCOMMITTED_FEATURES) {
+										gpkg.commit();
+										uncommittedFeatures.set(0);
+									}
+								} catch (GeoPackageException e) {
+									LOG.warn("Failed to add feature with ID '" + id + "'", e);
+								}
 							}
 						}
 					}
@@ -251,7 +280,7 @@ public class KMLHarvester extends AbstractHarvester {
 	}
 	
 	/*
-	 * Convert a sequence of coordinates into a WKT-formatted list:
+	 * Convert a sequence of coordinate values into a WKT-formatted list:
 	 * (x1 y1, x2 y2, ..., xn yn)
 	 */
 	private String coordListToWKTList(List<Coordinate> coords) {

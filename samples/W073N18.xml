@@ -31,6 +31,21 @@
 		</gml:Envelope>
 	</georss:where>
 	<entry>
+		<id>polygon_features</id>
+		<title>Polygon Features</title>
+		<updated>2013-12-11T17:00:00Z</updated>
+		<dc:publisher>MGCP</dc:publisher>
+		<content type="text">Multiple shapefiles comprising the Port-au-Prince area of Haiti</content>
+		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
+			<owc:content type="application/x-shapefile" href="file:///users/sean/Projects/IGW/W.zip">
+			    <testbed:parameters xmlns:testbed="http://schemas.compusult.net/ows10/ows-context">
+					<testbed:parameter name="default-geometries" value="exclude" />
+					<testbed:parameter name="include-geometry" value="multipolygon" />
+				</testbed:parameters>
+			</owc:content>
+		</owc:offering>
+	</entry>
+	<entry>
 		<id>linear_features</id>
 		<title>Linear Features</title>
 		<updated>2013-12-11T17:00:00Z</updated>
@@ -56,21 +71,6 @@
 			    <testbed:parameters xmlns:testbed="http://schemas.compusult.net/ows10/ows-context">
 					<testbed:parameter name="default-geometries" value="exclude" />
 					<testbed:parameter name="include-geometry" value="point" />
-				</testbed:parameters>
-			</owc:content>
-		</owc:offering>
-	</entry>
-	<entry>
-		<id>polygon_features</id>
-		<title>Polygon Features</title>
-		<updated>2013-12-11T17:00:00Z</updated>
-		<dc:publisher>MGCP</dc:publisher>
-		<content type="text">Multiple shapefiles comprising the Port-au-Prince area of Haiti</content>
-		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
-			<owc:content type="application/x-shapefile" href="file:///users/sean/Projects/IGW/W.zip">
-			    <testbed:parameters xmlns:testbed="http://schemas.compusult.net/ows10/ows-context">
-					<testbed:parameter name="default-geometries" value="exclude" />
-					<testbed:parameter name="include-geometry" value="multipolygon" />
 				</testbed:parameters>
 			</owc:content>
 		</owc:offering>

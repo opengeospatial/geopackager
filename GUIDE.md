@@ -40,7 +40,7 @@ Harvesters are responsible for extracting data from target data sources, and wri
 * A WMS harvester may optionally use `<testbed:parameters>` to define a similar kind of tiling range.
 * A KML harvester uses either or both of inline data or URL reference in a `<content>` element.
 * A WFS harvester would use multiple `<operation>` elements under the selected offering.
-* A Shapefile harvester may optionally use `<testbed:parameters>` to define the geometry types in which it is interested or not interested:
+* A Shapefile or KML harvester may optionally use `<testbed:parameters>` to define the geometry types in which it is interested or not interested:
   * Specify `<testbed:parameter name="default-geometries" value="exclude"/>` to change the default stance of including all feature geometries, to excluding them.  Or set the parameter to `"include"` to be explicit that all feature geometries are to be included by default.
   * Specify `<testbed:parameter name="include-geometries" value="linestring point"/>` to choose which geometries are included when `default-geometries` is set to `exclude`.
   * Specify `<testbed:parameter name="exclude-geometries" value="linestring point"/>` to choose which geometries are included when `default-geometries` is set to `include`.

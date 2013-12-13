@@ -231,7 +231,7 @@ public class KMLHarvester extends AbstractFeatureHarvester {
 								fields.put("geom", geomString);
 								
 								try {
-									gpkg.addVectorFeature(tableName, fields, Collections.singleton("geom"));
+									gpkg.addVectorFeature(tableName, fields, Collections.singleton("geom"), "4326");
 									
 									if (uncommittedFeatures.incrementAndGet() == MAX_UNCOMMITTED_FEATURES) {
 										gpkg.commit();

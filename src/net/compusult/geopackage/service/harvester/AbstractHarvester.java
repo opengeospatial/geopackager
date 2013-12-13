@@ -113,5 +113,12 @@ public abstract class AbstractHarvester implements Harvester {
 		String value = domUtil.getAttributeValue(parameter, "value");
 		params.put(name,  value);
 	}
+
+	protected Map<String, String> parseParameters(List<Node> extensionElements, List<Node> globalExtensions) throws GeoPackageException {
+		Map<String, String> params = parseParameters(extensionElements);
+		Map<String, String> globalParams = parseParameters(globalExtensions);
+		params.putAll(globalParams);	// override lower-level parameters with the global ones
+		return params;
+	}
 	
 }

@@ -46,6 +46,7 @@ import net.compusult.geopackage.service.model.FeatureColumnInfo.ColumnType;
 import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.geopackage.service.model.LayerInformation;
 import net.compusult.geopackage.service.model.LayerInformation.Type;
+import net.compusult.lang.Mutable;
 import net.compusult.owscontext.Content;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Resource;
@@ -61,7 +62,6 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Required;
@@ -115,6 +115,21 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 		layerInfo.setTitle(resource.getTitle().getText());
 		layerInfo.setCrs(null);		// will be overwritten later
 		
+		Map<String, String> globalParams = parseParameters(offering.getExtensions());
+		
+		String forceCRSString = globalParams.get("transform-to");
+		CoordinateReferenceSystem transformTo = null;
+		try {
+			if (forceCRSString != null) {
+				transformTo = CRS.decode("EPSG:" + forceCRSString);
+			}
+		} catch (Exception e) {
+			throw new GeoPackageException("Unsupported transform-to projection '" + forceCRSString + "'", e);
+		}
+
+		String insertAsCRS;
+		CoordinateReferenceSystem sourceCRS;
+		
 		try {
 			/*
 			 * Multiple effects:
@@ -123,7 +138,14 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			 * 3. Cache information about the shapefile in a list.
 			 * 3. Create a coalesced data model that is the union of all of them.
 			 */
-			getProgressTracker().setItemCount(createFeatureTable(gpkg, offering, layerInfo));
+			Mutable<String> sourceSrid = new Mutable<String>();
+			getProgressTracker().setItemCount(createFeatureTable(gpkg, offering, layerInfo, forceCRSString, sourceSrid));
+
+			String sourceCRSString = sourceSrid.get();
+			sourceCRS = CRS.decode("EPSG:" + sourceCRSString);
+			
+			insertAsCRS = (forceCRSString != null) ? forceCRSString : sourceCRSString;
+			
 		} catch (GeoPackageException e) {
 			throw e;
 		} catch (Exception e) {
@@ -182,11 +204,19 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 								String geomType = null;
 								
 								if (prop.getValue() instanceof Geometry) {
-									val = ((Geometry) prop.getValue()).toText();
-									geomType = ((Geometry) prop.getValue()).getGeometryType().toLowerCase();
+									Geometry geomVal = (Geometry) prop.getValue();
+									if (transformTo != null) {
+										geomVal = transformJTSGeometry(geomVal, sourceCRS, transformTo);
+									}
+									val = geomVal.toText();
+									geomType = geomVal.getGeometryType().toLowerCase();
 									isGeom = true;
 								} else if (prop.getValue() instanceof org.opengis.geometry.Geometry) {
-									val = ((org.opengis.geometry.Geometry) prop.getValue()).toString();
+									org.opengis.geometry.Geometry geomVal = (org.opengis.geometry.Geometry) prop.getValue();
+									if (transformTo != null) {
+										geomVal = geomVal.transform(transformTo);
+									}
+									val = geomVal.toString();
 									geomType = val.toLowerCase().replaceFirst("[^a-z].*", "");
 									isGeom = true;
 								} else {
@@ -207,7 +237,7 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 							}
 							
 							if (! skip) {
-								gpkg.addVectorFeature(tableName, props, geomColumns);
+								gpkg.addVectorFeature(tableName, props, geomColumns, insertAsCRS);
 								
 								if (++ uncommittedFeatures == MAX_UNCOMMITTED_FEATURES) {
 									gpkg.commit();
@@ -244,10 +274,12 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 	 * @param gpkg
 	 * @param offering
 	 * @param layerInfo
+	 * @param forceCRSString
+	 * @param sourceSrid - an 'out' parameter that is set to the source files' SRID
 	 * @return the number of "items" that have to be processed
 	 * @throws GeoPackageException
 	 */
-	private int createFeatureTable(GeoPackage gpkg, Offering offering, LayerInformation layerInfo) throws Exception {
+	private int createFeatureTable(GeoPackage gpkg, Offering offering, LayerInformation layerInfo, String forceCRSString, Mutable<String> sourceSrid) throws Exception {
 
 		Set<String> foundNames = new HashSet<String>();
 		List<FeatureColumnInfo> featCols = new ArrayList<FeatureColumnInfo>();
@@ -275,10 +307,10 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 				 * since GeoTools doesn't.
 				 */
 				String srid = inferCRSFromPrjFile(info.getLocalUrl());
-				if (layerInfo.getCrs() != null && !srid.equals(layerInfo.getCrs())) {
-					throw new GeoPackageException("SRID mismatch within one Shapefile layer: " + layerInfo.getCrs() + " vs. " + srid);
+				if (sourceSrid.get() != null && !srid.equals(sourceSrid.get())) {
+					throw new GeoPackageException("SRID mismatch within one Shapefile layer: " + sourceSrid + " vs. " + srid);
 				}
-				layerInfo.setCrs(srid);
+				sourceSrid.set(srid);
 				
 				String[] typeNames = dataStore.getTypeNames();
 				for (String typeName : typeNames) {
@@ -318,12 +350,14 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			}
 		}
 		
+		if (sourceSrid.get() == null) {
+			sourceSrid.set("4326");
+		}
+		layerInfo.setCrs(forceCRSString == null ? sourceSrid.get() : forceCRSString);
+		
 		/*
 		 * Finally, create the new feature table.
 		 */
-		if (layerInfo.getCrs() == null) {
-			layerInfo.setCrs("4326");
-		}
 		gpkg.updateFeatureTableSchema(layerInfo.getTableName(), layerInfo, featCols);
 		
 		return items;
@@ -377,8 +411,7 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			return null;			// can't determine CRS
 		}
 		
-		ReferenceIdentifier ri = crs.getName();
-		String srid = ri.getCode();
+		String srid = CRS.toSRS(crs);
 		if (srid.endsWith("WGS_1984")) {
 			srid = "4326";
 		}

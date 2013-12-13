@@ -184,15 +184,15 @@ public class GeoPackage {
 	}
 
 	public void createGeometryColumn(String tableName, String columnName,
-			String geometryType, boolean notNull) throws GeoPackageException {
+			String geometryType, boolean notNull, String srid) throws GeoPackageException {
 		
-		dao.createGeometryColumn(tableName, columnName, geometryType, notNull);
+		dao.createGeometryColumn(tableName, columnName, geometryType, notNull, srid);
 	}
 
 	public void addVectorFeature(String tableName, Map<String, String> fields,
-			Set<String> geometryColumnNames) throws GeoPackageException {
+			Set<String> geometryColumnNames, String srid) throws GeoPackageException {
 		
-		dao.addVectorFeature(tableName, fields, geometryColumnNames);
+		dao.addVectorFeature(tableName, fields, geometryColumnNames, srid);
 	}
 
 	/*

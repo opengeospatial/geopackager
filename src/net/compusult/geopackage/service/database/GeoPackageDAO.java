@@ -281,8 +281,9 @@ public class GeoPackageDAO {
 	 * Add a single vector feature record to the given table.  Geometry values are always inserted relative to the EPSG:4326 coordinate
 	 * system; that is, as lats and longs.
 	 * TODO support other CRSs
+	 * @param srid TODO
 	 */
-	public void addVectorFeature(String tableName, Map<String, String> fields, Set<String> geometryColumnNames) throws GeoPackageException {
+	public void addVectorFeature(String tableName, Map<String, String> fields, Set<String> geometryColumnNames, String srid) throws GeoPackageException {
 		StringBuilder sql = new StringBuilder("INSERT INTO ");
 		sql.append(tableName).append('(');
 		sql.append(StringUtils.collectionToCommaDelimitedString(fields.keySet()));
@@ -294,7 +295,7 @@ public class GeoPackageDAO {
 			}
 			first = false;
 			if (geometryColumnNames.contains(entry.getKey())) {
-				sql.append("ST_GeomFromText(?,(SELECT srs_id FROM gpkg_spatial_ref_sys WHERE upper(organization)='EPSG' AND organization_coordsys_id=4326))");
+				sql.append("ST_GeomFromText(?,(SELECT srs_id FROM gpkg_spatial_ref_sys WHERE upper(organization)='EPSG' AND organization_coordsys_id=" + srid + "))");
 			} else {
 				sql.append('?');
 			}
@@ -321,10 +322,16 @@ public class GeoPackageDAO {
 	}
 
 
-	public void createGeometryColumn(String tableName, String columnName, String geometryType, boolean notNull) throws GeoPackageException {
+	public void createGeometryColumn(String tableName, String columnName, String geometryType, boolean notNull, String srid) throws GeoPackageException {
+		
+		if (srid.startsWith("EPSG:")) {
+			srid = srid.substring(5);
+		}
+		ensureSridExists(srid);
+
 		PreparedStatement ps = null;
 		try {
-			String sql = "SELECT AddGeometryColumn(?, ?, ?, (SELECT srs_id FROM gpkg_spatial_ref_sys WHERE upper(organization)='EPSG' AND organization_coordsys_id=4326));";
+			String sql = "SELECT AddGeometryColumn(?, ?, ?, (SELECT srs_id FROM gpkg_spatial_ref_sys WHERE upper(organization)='EPSG' AND organization_coordsys_id=" + srid + "));";
 
 			ps = getConnection().prepareStatement(sql);
 			ps.setString(1, tableName);
@@ -385,7 +392,7 @@ public class GeoPackageDAO {
 		if (srid.startsWith("EPSG:")) {
 			srid = srid.substring(5);
 		}
-		ensure_srid_exists(srid);
+		ensureSridExists(srid);
 
 		try {
 			boolean exists = false;
@@ -476,7 +483,7 @@ public class GeoPackageDAO {
 			ps.close();
 
 			for (FeatureColumnInfo col : geomColumns) {
-				createGeometryColumn(tableName, col.getName(), col.getGeometryType(), col.isNotNull());
+				createGeometryColumn(tableName, col.getName(), col.getGeometryType(), col.isNotNull(), layerInfo.getCrs());
 			}
 		} catch (SQLException e) {
 			throw new GeoPackageException("Failed to create table " + tableName, e);
@@ -628,7 +635,7 @@ public class GeoPackageDAO {
 	 * @param srid
 	 * @throws GeoPackageException
 	 */
-	private void ensure_srid_exists(String srid) throws GeoPackageException {
+	private void ensureSridExists(String srid) throws GeoPackageException {
 		
 		String sql;
 		ResultSet rs = null;

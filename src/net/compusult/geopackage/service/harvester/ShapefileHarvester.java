@@ -145,6 +145,11 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			sourceCRS = CRS.decode("EPSG:" + sourceCRSString);
 			
 			insertAsCRS = (forceCRSString != null) ? forceCRSString : sourceCRSString;
+
+			// Check for null transformation
+			if (forceCRSString != null && forceCRSString.equals(sourceCRSString)) {
+				transformTo = null;
+			}
 			
 		} catch (GeoPackageException e) {
 			throw e;
@@ -187,8 +192,10 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 							Set<String> geomColumns = new HashSet<String>();
 							
 							/*
-							 * If we're excluding all features by default, then 'skip' is true
-							 * until we hit a geometry we know we're including.
+							 * If we're excluding all features by default, then 'skip' is true until
+							 * we hit a geometry we want to include.  Conversely, if we're including
+							 * all features by default then 'skip' is false until we hit a geometry
+							 * we want to exclude.
 							 */
 							boolean skip = defaultIsExclude;
 							

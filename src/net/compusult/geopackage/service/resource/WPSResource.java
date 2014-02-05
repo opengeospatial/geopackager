@@ -18,6 +18,8 @@
    
 package net.compusult.geopackage.service.resource;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -32,6 +34,10 @@ import javax.xml.parsers.ParserConfigurationException;
 import net.compusult.geopackage.service.geopackager.GeoPackager;
 import net.compusult.geopackage.service.geopackager.GeoPackager.ProcessingStatus;
 import net.compusult.geopackage.service.geopackager.GeoPackagingPool;
+import net.compusult.owscontext.codec.AtomCodec;
+import net.compusult.owscontext.codec.OWSContextCodec;
+import net.compusult.owscontext.codec.OWSContextCodec.EncodingException;
+import net.compusult.owscontext.codec.OWSContextCodecFactory;
 import net.compusult.xml.DOMUtil;
 
 import org.apache.log4j.Logger;
@@ -45,6 +51,8 @@ import org.restlet.resource.ServerResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public abstract class WPSResource extends ServerResource {
 	
@@ -90,6 +98,8 @@ public abstract class WPSResource extends ServerResource {
 		}
 	}
 	
+	@Autowired private OWSContextCodecFactory contextCodecFactory;
+	
 	protected final DOMUtil domUtil;
 	protected GeoPackagingPool packagerPool;
 	
@@ -128,7 +138,7 @@ public abstract class WPSResource extends ServerResource {
 		return error(ExceptionCode.NoApplicableCode, ex.getMessage(), locator, ex.getCause());
 	}
 	
-	protected Representation generateResponseDoc(GeoPackager packager) throws ParserConfigurationException {
+	protected Representation generateResponseDoc(GeoPackager packager) throws ParserConfigurationException, EncodingException, SAXException, IOException {
 		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
@@ -166,6 +176,10 @@ public abstract class WPSResource extends ServerResource {
 			 * ProcessOutputs is only used when status is ProcessSucceeded.
 			 */
 			Element newProcOutputs = outputDoc.createElementNS(WPS_NS, "ProcessOutputs");
+			
+			/*
+			 * -- First output is the GeoPackage
+			 */
 			Element newOutput = outputDoc.createElementNS(WPS_NS, "Output");
 			
 			identElement = outputDoc.createElementNS(OWS_NS, "Identifier");
@@ -181,10 +195,45 @@ public abstract class WPSResource extends ServerResource {
 			newOutput.appendChild(newOutputRef);
 			
 			newProcOutputs.appendChild(newOutput);
+			
+			/*
+			 * -- Second output is the updated context document
+			 */
+			newOutput = outputDoc.createElementNS(WPS_NS, "Output");
+			
+			identElement = outputDoc.createElementNS(OWS_NS, "Identifier");
+			identElement.setTextContent(IDENT_OWSCONTEXT);
+			newOutput.appendChild(identElement);
+			
+			newTitle = outputDoc.createElementNS(OWS_NS, "Title");
+			newTitle.setTextContent("Updated OWS Context after GeoPackaging");
+			newOutput.appendChild(newTitle);
+
+			newOutputRef = outputDoc.createElementNS(WPS_NS, "Data");
+			Element complexData = outputDoc.createElementNS(WPS_NS, "ComplexData");
+			complexData.setAttribute("mimeType", AtomCodec.MIME_TYPE);
+			Element context = createResultingOWSContext(packager);
+			complexData.appendChild(outputDoc.adoptNode(context.cloneNode(true)));
+			newOutputRef.appendChild(complexData);
+			newOutput.appendChild(newOutputRef);
+			
+			newProcOutputs.appendChild(newOutput);
+
 			newRoot.appendChild(newProcOutputs);
 		}
 
 		return new DomRepresentation(MediaType.TEXT_XML, outputDoc);
+	}
+	
+	private Element createResultingOWSContext(GeoPackager packager) throws EncodingException, ParserConfigurationException, SAXException, IOException {
+		OWSContextCodec codec = contextCodecFactory.createCodec(AtomCodec.MIME_TYPE);
+		String encoded = codec.encode(packager.getOWSContext());
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		DocumentBuilder builder = dbf.newDocumentBuilder();
+		Document contextDoc = builder.parse(new InputSource(new StringReader(encoded)));
+		return contextDoc.getDocumentElement();
 	}
 	
 	private String constructRetrievalReference(String id) {
@@ -234,6 +283,10 @@ public abstract class WPSResource extends ServerResource {
 		newStatus.appendChild(newProcStatus);
 		
 		return newStatus;
+	}
+
+	public void setContextCodecFactory(OWSContextCodecFactory contextCodecFactory) {
+		this.contextCodecFactory = contextCodecFactory;
 	}
 
 }

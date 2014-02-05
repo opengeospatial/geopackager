@@ -18,8 +18,6 @@
    
 package net.compusult.geopackage.service.resource;
 
-import javax.xml.parsers.ParserConfigurationException;
-
 import net.compusult.geopackage.service.geopackager.GeoPackager;
 
 import org.restlet.data.Status;
@@ -51,7 +49,7 @@ public class WPSStatusResource extends WPSResource {
 	public Representation checkStatus() {
 		try {
 			return generateResponseDoc(packager);
-		} catch (ParserConfigurationException e) {
+		} catch (Exception e) {
 			throw new ResourceException(Status.SERVER_ERROR_INTERNAL, e);
 		}
 	}

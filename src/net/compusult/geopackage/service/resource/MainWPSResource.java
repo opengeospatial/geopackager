@@ -21,8 +21,6 @@ package net.compusult.geopackage.service.resource;
 import java.io.IOException;
 import java.util.List;
 
-import javax.xml.parsers.ParserConfigurationException;
-
 import net.compusult.geopackage.service.geopackager.GeoPackager;
 import net.compusult.geopackage.service.resource.helper.TemplateManager;
 import net.compusult.owscontext.ContextDoc;
@@ -271,7 +269,7 @@ public class MainWPSResource extends WPSResource {
 		
 		try {
 			return generateResponseDoc(packager);
-		} catch (ParserConfigurationException e) {
+		} catch (Exception e) {
 			return error(ExceptionCode.NoApplicableCode, e.getMessage());
 		}
 	}

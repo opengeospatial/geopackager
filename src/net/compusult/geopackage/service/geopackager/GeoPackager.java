@@ -85,7 +85,6 @@ public class GeoPackager implements Runnable {
 	private String workDirectory;
 	private ProcessingStatus currentStatus;
 	private ProgressTracker progressTracker;
-	private ContextDoc resultingContext;
 	private String fileName;
 	
 	private HarvesterFactory harvesterFactory;
@@ -96,7 +95,6 @@ public class GeoPackager implements Runnable {
 		this.owsContext = owsContext;
 		this.passPhrase = (passPhrase == null) ? "" : passPhrase.trim();
 		this.secure = !"".equals(this.passPhrase);
-		this.resultingContext = null;
 		this.currentStatus = ProcessingStatus.ACCEPTED;
 		this.progressTracker = null;
 		this.fileName = null;
@@ -154,8 +152,8 @@ public class GeoPackager implements Runnable {
 		return fileName;
 	}
 
-	public ContextDoc getResultingContext() {
-		return resultingContext;
+	public ContextDoc getOWSContext() {
+		return owsContext;
 	}
 	
 	public ProcessingStatus getCurrentStatus() {

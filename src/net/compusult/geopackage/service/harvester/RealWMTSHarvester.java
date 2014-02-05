@@ -38,19 +38,23 @@ public class RealWMTSHarvester extends AbstractWMTSHarvester {
 	}
 	
 	@Override
-	public void harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
+	public Offering harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
 
+		String tableName = sanitizeTableName(resource.getId());
+		
 		Operation getCaps = findRequiredOperation(offering, "GetCapabilities");
 		
 		Map<String, String> params = parseParameters(offering.getExtensions());
 		
 		TileServer wmts = new RealWMTS(getCaps.getRequestURL(), params);
 		
-		LayerInformation layerInfo = new LayerInformation(gpkg, Type.TILES, sanitizeTableName(resource.getId()));
+		LayerInformation layerInfo = new LayerInformation(gpkg, Type.TILES, tableName);
 		layerInfo.setTitle(resource.getTitle().getText());
 		layerInfo.setCrs(wmts.getCRS());
 		
 		harvestTiles(gpkg, wmts, layerInfo, selectEnvelope(resource), params);
+		
+		return buildOffering(tableName, Type.TILES);
 	}
 	
 }

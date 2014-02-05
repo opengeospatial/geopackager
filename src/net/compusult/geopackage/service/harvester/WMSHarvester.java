@@ -43,8 +43,10 @@ public class WMSHarvester extends AbstractWMTSHarvester {
 	}
 	
 	@Override
-	public void harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
+	public Offering harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
 
+		String tableName = sanitizeTableName(resource.getId());
+		
 		Operation getMap = findRequiredOperation(offering, "GetMap");
 		
 		Map<String, String> params = parseParameters(offering.getExtensions());
@@ -86,11 +88,13 @@ public class WMSHarvester extends AbstractWMTSHarvester {
 		}
 		TileServer wms = new TiledWMS(getMapRequest, srs, rect, requestedTileFormat, params);
 		
-		LayerInformation layerInfo = new LayerInformation(gpkg, Type.TILES, sanitizeTableName(resource.getId()));
+		LayerInformation layerInfo = new LayerInformation(gpkg, Type.TILES, tableName);
 		layerInfo.setTitle(resource.getTitle().getText());
 		layerInfo.setCrs(srs);
 		
 		harvestTiles(gpkg, wms, layerInfo, null, params);
+		
+		return buildOffering(tableName, Type.TILES);
 	}
 
 }

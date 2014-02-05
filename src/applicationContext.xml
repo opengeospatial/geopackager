@@ -178,6 +178,7 @@
 	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/wfs"       value="wfsOffering" />
 	            <entry key="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile" value="shapefileOffering" />
 				<entry key="http://www.compusult.net/offering/simple-3857-tiles"    value="simple3857Offering" />
+				<entry key="http://www.opengis.net/spec/owc-atom/1.0/req/gpkg"      value="gpkgOffering" />
    	        </map>
 	    </property>
 	</bean>
@@ -189,7 +190,8 @@
 	<bean id="wfsOffering"        class="net.compusult.owscontext.WFSOffering"             scope="prototype" />
 	<bean id="shapefileOffering"  class="net.compusult.owscontext.ShapefileOffering"       scope="prototype" />
 	<bean id="simple3857Offering" class="net.compusult.owscontext.Simple3857TilesOffering" scope="prototype" />
-
+	<bean id="gpkgOffering"       class="net.compusult.owscontext.GeoPackageOffering"      scope="prototype" />
+	
 	<!-- Singleton -->
 	<bean class="net.compusult.geopackage.service.resource.helper.TemplateManager">
 	    <property name="contactInfo">

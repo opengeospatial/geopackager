@@ -107,7 +107,7 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 	}
 
 	@Override
-	public void harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
+	public Offering harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
 		
 		final String tableName = sanitizeTableName(resource.getId());
 		
@@ -270,6 +270,8 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			gpkg.commit();
 			uncommittedFeatures = 0;
 		}
+		
+		return buildOffering(tableName, Type.FEATURES);
 	}
 	
 	/**

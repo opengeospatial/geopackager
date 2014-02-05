@@ -224,4 +224,9 @@ public class GeoPackage {
 			}
 		}
 	}
+	
+	public void writeMetadataEntry(String scope, String standardUri, String mimeType, String content) throws GeoPackageException {
+		dao.writeMetadataEntry(scope, standardUri, mimeType, content);
+	}
+	
 }

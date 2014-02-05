@@ -1,5 +1,5 @@
 /*
- * Harvester.java
+ * WMTSOffering.java
  * 
  * Copyright 2013, Compusult Ltd.
  *
@@ -16,17 +16,13 @@
  * limitations under the License.
  */
    
-package net.compusult.geopackage.service.harvester;
+package net.compusult.owscontext;
 
-import net.compusult.geopackage.service.GeoPackageException;
-import net.compusult.geopackage.service.geopackager.ProgressTracker;
-import net.compusult.geopackage.service.model.GeoPackage;
-import net.compusult.owscontext.Offering;
-import net.compusult.owscontext.Resource;
-
-public interface Harvester {
-
-	Offering harvest(GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException;
-	ProgressTracker getProgressTracker();
+public class GeoPackageOffering extends Offering {
 	
+	public static final String OFFERING_CODE = "http://www.opengis.net/spec/owc-atom/1.0/req/gpkg";
+
+	public GeoPackageOffering() {
+		super(OFFERING_CODE);
+	}
 }

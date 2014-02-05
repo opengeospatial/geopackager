@@ -59,7 +59,6 @@ public class GeoPackageDAO {
 	private final DatabaseScript createTilesetScript;
 	private final DatabaseScript deleteTilesetScript;
 	private final DatabaseScript deleteFeatureLayerScript;
-	private final DatabaseScript createFeatureMetadataScript;
 
 	private Connection connection = null;
 	private File fileLocation = null;
@@ -79,9 +78,6 @@ public class GeoPackageDAO {
 
 		this.deleteFeatureLayerScript = new DatabaseScript();
 		deleteFeatureLayerScript.readScript("scripts/delete_feature_layer.sql");
-
-		this.createFeatureMetadataScript = new DatabaseScript();
-		createFeatureMetadataScript.readScript("scripts/create_feature_metadata.sql");
 	}
 
 	public void setFileLocation(File fileLocation) {
@@ -264,19 +260,6 @@ public class GeoPackageDAO {
 		}
 	}
 
-	public void createFeatureTableMetadata(String tableName) throws GeoPackageException {
-
-		try {
-			if (! hasTable(tableName + "_rt_metadata")) {
-				createFeatureMetadataScript.executeScript(getConnection(),
-						Collections.singletonMap("FEATURE_TABLENAME", tableName));
-			}
-
-		} catch (SQLException e) {
-			throw new GeoPackageException("Failed to create feature table metadata", e);
-		}
-	}
-	
 	/**
 	 * Add a single vector feature record to the given table.  Geometry values are always inserted relative to the EPSG:4326 coordinate
 	 * system; that is, as lats and longs.
@@ -493,8 +476,26 @@ public class GeoPackageDAO {
 		}
 
 		updateLayerInTOC(layerInfo);
+	}
+	
+	public void writeMetadataEntry(String scope, String standardUri, String mimeType, String content) throws GeoPackageException {
 
-		createFeatureTableMetadata(tableName);
+		PreparedStatement ps = null;
+
+		try {
+			ps = getConnection().prepareStatement("INSERT INTO gpkg_metadata(md_scope,md_standard_uri,mime_type,metadata) values (?,?,?,?)");
+			ps.setString(1, scope);
+			ps.setString(2, standardUri);
+			ps.setString(3, mimeType);
+			ps.setString(4, content);
+			ps.executeUpdate();
+
+		} catch (SQLException e) {
+			throw new GeoPackageException("Failed to insert new gpkg_metadata entry", e);
+		} finally {
+			cleanUp(null, ps);
+		}
+
 	}
 	
 	public boolean hasTable(String tableName) throws GeoPackageException {

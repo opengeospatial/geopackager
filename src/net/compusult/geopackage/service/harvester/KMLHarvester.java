@@ -64,7 +64,7 @@ public class KMLHarvester extends AbstractFeatureHarvester {
 	}
 
 	@Override
-	public void harvest(final GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
+	public Offering harvest(final GeoPackage gpkg, Resource resource, Offering offering) throws GeoPackageException {
 		
 		final String tableName = sanitizeTableName(resource.getId());
 		
@@ -246,6 +246,8 @@ public class KMLHarvester extends AbstractFeatureHarvester {
 				});
 			}
 		}
+		
+		return buildOffering(tableName, Type.FEATURES);
 	}
 	
 	/**

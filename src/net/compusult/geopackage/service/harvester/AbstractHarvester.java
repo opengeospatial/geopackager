@@ -24,11 +24,15 @@ import java.util.Map;
 
 import net.compusult.geopackage.service.GeoPackageException;
 import net.compusult.geopackage.service.geopackager.ProgressTracker;
+import net.compusult.geopackage.service.model.LayerInformation;
+import net.compusult.owscontext.GeoPackageOffering;
 import net.compusult.owscontext.Offering;
+import net.compusult.owscontext.OfferingFactory;
 import net.compusult.owscontext.Operation;
 import net.compusult.owscontext.Resource;
 import net.compusult.xml.DOMUtil;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -42,10 +46,16 @@ public abstract class AbstractHarvester implements Harvester {
 	
 	private final DOMUtil domUtil;
 	private final ProgressTracker progressTracker;
+	private OfferingFactory offeringFactory;
 	
 	protected AbstractHarvester(ProgressTracker progressTracker) {
 		this.domUtil = new DOMUtil();
 		this.progressTracker = progressTracker;
+	}
+
+	@Autowired
+	public void setOfferingFactory(OfferingFactory offeringFactory) {
+		this.offeringFactory = offeringFactory;
 	}
 
 	@Override
@@ -119,6 +129,24 @@ public abstract class AbstractHarvester implements Harvester {
 		Map<String, String> globalParams = parseParameters(globalExtensions);
 		params.putAll(globalParams);	// override lower-level parameters with the global ones
 		return params;
+	}
+	
+	protected Offering buildOffering(String tableName, LayerInformation.Type layerType) {
+		Offering offering = offeringFactory.createOffering(GeoPackageOffering.OFFERING_CODE);
+		
+		Operation getFeatureOrTile = new Operation();
+		getFeatureOrTile.setOperationMethod("GET");
+		getFeatureOrTile.setOperationCode("Get" + layerType.getLabel());
+		getFeatureOrTile.setRequestURL("#" + tableName);
+		offering.getOperations().add(getFeatureOrTile);
+		
+		Operation getCaps = new Operation();
+		getCaps.setOperationMethod("GET");
+		getCaps.setOperationCode("GetCapabilities");
+		getCaps.setRequestURL("#gpkg_contents");
+		offering.getOperations().add(getCaps);
+		
+		return offering;
 	}
 	
 }

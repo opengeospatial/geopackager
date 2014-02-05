@@ -29,6 +29,10 @@ import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.owscontext.ContextDoc;
 import net.compusult.owscontext.Offering;
 import net.compusult.owscontext.Resource;
+import net.compusult.owscontext.codec.AtomCodec;
+import net.compusult.owscontext.codec.OWSContextCodec;
+import net.compusult.owscontext.codec.OWSContextCodec.EncodingException;
+import net.compusult.owscontext.codec.OWSContextCodecFactory;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,6 +90,7 @@ public class GeoPackager implements Runnable {
 	
 	private HarvesterFactory harvesterFactory;
 	private OfferingSelectionAlgorithm offeringSelector;
+	private OWSContextCodecFactory contextCodecFactory;
 	
 	public GeoPackager(ContextDoc owsContext, String passPhrase) {
 		this.owsContext = owsContext;
@@ -215,13 +220,17 @@ public class GeoPackager implements Runnable {
 			int successfulLayers = 0;
 			for (ResourceOffering ro : resourceOfferings) {
 				try {
-					ro.harvest(gpkg);
+					Offering offering = ro.harvest(gpkg);
+					ro.getResource().getOfferings().add(offering);	// update gpkg with a pointer to the new layer in the GeoPackage
 					++ successfulLayers;
 				} catch (GeoPackageException e) {
 					LOG.warn("Could not harvest layer (resource) with identifier '" + ro.getResource().getId() + "'", e);
 				}
 				progressTracker.newItem();		// advance to the next, regardless of whether we succeeded
 			}
+			
+			writeBackOWSContext(gpkg);
+			gpkg.commit();
 			
 			if (successfulLayers == 0) {
 				LOG.warn("No layers were successfully imported into the GeoPackage");
@@ -240,6 +249,15 @@ public class GeoPackager implements Runnable {
 		}
 	}
 	
+	private void writeBackOWSContext(GeoPackage gpkg) throws GeoPackageException, EncodingException {
+		/*
+		 * Serialize the owsContext into its Atom encoding.
+		 */
+		OWSContextCodec codec = contextCodecFactory.createCodec(AtomCodec.MIME_TYPE);
+		String text = codec.encode(owsContext);
+		gpkg.writeMetadataEntry("series", "something here?", "application/atom+xml", text);
+	}
+	
 	
 	private static class ResourceOffering {
 		private final Resource resource;
@@ -256,8 +274,8 @@ public class GeoPackager implements Runnable {
 			return resource;
 		}
 
-		public void harvest(GeoPackage gpkg) throws GeoPackageException {
-			harvester.harvest(gpkg, resource, offering);
+		public Offering harvest(GeoPackage gpkg) throws GeoPackageException {
+			return harvester.harvest(gpkg, resource, offering);
 		}
 	}
 
@@ -269,6 +287,11 @@ public class GeoPackager implements Runnable {
 	@Autowired
 	public void setOfferingSelector(OfferingSelectionAlgorithm offeringSelector) {
 		this.offeringSelector = offeringSelector;
+	}
+
+	@Autowired
+	public void setContextCodecFactory(OWSContextCodecFactory contextCodecFactory) {
+		this.contextCodecFactory = contextCodecFactory;
 	}
 	
 }

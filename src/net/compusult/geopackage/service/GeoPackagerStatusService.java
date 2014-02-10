@@ -71,7 +71,7 @@ public class GeoPackagerStatusService extends StatusService {
         if (throwable != null) {
         	sb.append(" - ").append(throwable.getMessage());
         }
-        sb.append("    </ows:ExceptionText>\n");
+        sb.append("</ows:ExceptionText>\n");
         sb.append("  </ows:Exception>\n");
         sb.append("</ows:ExceptionReport>\n");
         

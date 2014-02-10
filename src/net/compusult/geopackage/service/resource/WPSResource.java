@@ -251,7 +251,7 @@ public abstract class WPSResource extends ServerResource {
 		}
 		buf.append("/gpkg/").append(id);
 		
-		return Reference.toString(us.getScheme(), us.getHostDomain(), us.getHostPort(), buf.toString(), null, null);
+		return Reference.toString(us.getScheme(), us.getHostDomain(), (us.getHostPort() < 0) ? 80 : us.getHostPort(), buf.toString(), null, null);
 	}
 
 	protected Element createStatusElement(Document doc, GeoPackager packager) {

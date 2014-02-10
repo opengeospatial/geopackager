@@ -1,0 +1,91 @@
+<project name="GeoPackagerService" basedir="." default="package">
+
+    <!-- project-specific variables -->
+    <property name="package.name" value="GeoPackagerService.war" />
+
+    <property environment="env" />
+    <property name="build.dir" value="build" />
+    <property file="${build.dir}/build.${env.HOSTNAME}" />
+
+    <property name="src.dir" value="src" />
+    <property name="metainf.dir" value="WebContent/META-INF" />
+    <property name="webinf.dir" value="WebContent/WEB-INF" />
+    <property name="lib.dir" value="${webinf.dir}/lib" />
+    <property name="gpkglib.dir" value="GeoPackageLibrary" />
+    <property name="dest.dir" value="target" />
+
+    <!-- put everything in a temp folder with the right structure during the build -->
+    <property name="temp.dir" value="${build.dir}/temp" />
+    <property name="temp.dir.web-inf" value="${temp.dir}/WEB-INF" />
+    <property name="temp.dir.lib" value="${temp.dir.web-inf}/lib" />
+    <property name="temp.dir.classes" value="${temp.dir.web-inf}/classes" />
+    <property name="temp.dir.meta-inf" value="${temp.dir}/META-INF" />
+
+    <property name="package.file" value="${dest.dir}/${package.name}" />
+
+    <path id="build.class.path">
+        <fileset dir="${lib.dir}">
+            <include name="**/*.jar" />
+        </fileset>
+    </path>
+
+    <target name="clean">
+        <delete>
+            <fileset dir="${dest.dir}" includes="**/*"/>
+        </delete>
+        <delete dir="${temp.dir}" />
+        <delete dir="${temp.dir.classes}" />
+        <delete dir="${temp.dir.meta-inf}" />
+        <delete dir="${temp.dir.web-inf}" />
+    </target>
+    <property name="gpkglib.dir" value="GeoPackageLibrary" />
+
+    <target name="prepare" depends="clean">
+        <mkdir dir="${dest.dir}" />
+        <mkdir dir="${temp.dir}" />
+        <mkdir dir="${temp.dir.lib}" />
+        <mkdir dir="${temp.dir.meta-inf}" />
+        <mkdir dir="${temp.dir.meta-inf}/services" />
+        <mkdir dir="${temp.dir.web-inf}" />
+        <mkdir dir="${temp.dir.classes}" />
+    </target>
+
+    <!-- COMPILE -->
+    <target name="compile" depends="prepare">
+        <echo>=== COMPILE ===</echo>
+        <echo>Compiling ${src.dir} files ...</echo>
+        <javac debug="on" srcdir="${src.dir}" destdir="${temp.dir.classes}" includes="**/*">
+            <classpath refid="build.class.path" />
+            <exclude name="**/filter/*.java" />
+            <exclude name="**/JSONCodec.java" />
+        </javac>
+    </target>
+
+    <!-- PACKAGE -->
+    <target name="package" depends="compile">
+      <echo>=== PACKAGE ===</echo>
+     
+      <!-- copy the config files -->
+      <copy file="${metainf.dir}/MANIFEST.MF" tofile="${temp.dir.meta-inf}/MANIFEST.MF" overwrite="true" />
+      <copy file="${metainf.dir}/context.xml" tofile="${temp.dir.meta-inf}/context.xml" overwrite="true" />
+      <copy file="${metainf.dir}/services/java.sql.Driver" todir="${temp.dir.meta-inf}/services" overwrite="true" />
+      <copy file="${webinf.dir}/web.xml" tofile="${temp.dir.web-inf}/web.xml" overwrite="true" />
+
+      <copy todir="${temp.dir.classes}">
+        <fileset dir="${src.dir}">
+          <include name="**/*.sql"/>
+          <include name="**/*.st"/>
+          <include name="**/*.xml"/>
+          <include name="**/*.xsl"/>
+        </fileset>
+        <fileset dir="${gpkglib.dir}" />
+      </copy>
+    	
+      <!-- the ant war task. with all resources in place, create the war file -->
+      <war destfile="${package.file}" webxml="${temp.dir.web-inf}/web.xml" basedir="${temp.dir}">
+        <lib dir="${lib.dir}" />
+        <classes dir="${temp.dir.classes}" />
+      </war>
+    </target>
+
+</project>

@@ -62,7 +62,11 @@ public class MainWPSResource extends WPSResource {
 			return error(ExceptionCode.InvalidParameterValue, "Service must be WPS", "service");
 		}
 		
-		if (!"1.0.0".equals(query.getFirstValue("acceptversions", true, null))) {
+		String version = query.getFirstValue("acceptversions", true, null);		// GetCapabilities
+		if (version == null) {
+			version = query.getFirstValue("version", true, null);				// others
+		}
+		if (!"1.0.0".equals(version)) {
 			return error(ExceptionCode.VersionNegotiationFailed, "Only version 1.0.0 is supported", "version");
 		}
 		

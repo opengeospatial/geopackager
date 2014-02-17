@@ -67,7 +67,6 @@
      
       <!-- copy the config files -->
       <copy file="${metainf.dir}/MANIFEST.MF" tofile="${temp.dir.meta-inf}/MANIFEST.MF" overwrite="true" />
-      <copy file="${metainf.dir}/context.xml" tofile="${temp.dir.meta-inf}/context.xml" overwrite="true" />
       <copy file="${metainf.dir}/services/java.sql.Driver" todir="${temp.dir.meta-inf}/services" overwrite="true" />
       <copy file="${webinf.dir}/web.xml" tofile="${temp.dir.web-inf}/web.xml" overwrite="true" />
 

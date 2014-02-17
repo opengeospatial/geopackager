@@ -1,13 +1,10 @@
 package net.compusult.geopackage.service.resource;
 
-import java.io.File;
-
 import net.compusult.geopackage.service.geopackager.GeoPackager;
 import net.compusult.geopackage.service.geopackager.GeoPackager.ProcessingStatus;
 import net.compusult.geopackage.service.geopackager.GeoPackagingPool;
 
 import org.restlet.data.Disposition;
-import org.restlet.data.MediaType;
 import org.restlet.representation.FileRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.resource.Get;
@@ -28,9 +25,7 @@ public class GeoPackageRetrievalResource extends WPSResource {
 			return error(ExceptionCode.InvalidParameterValue, "GeoPackaging previously failed for that ID");
 		}
 		
-		File gpkgFile = new File(gpkger.getWorkDirectory(), gpkger.getFileName());
-		MediaType mediaType = new MediaType(gpkger.isSecure() ? GeoPackager.MIME_TYPE_SGPKG : GeoPackager.MIME_TYPE_GPKG);
-		Representation result = new FileRepresentation(gpkgFile, mediaType);
+		Representation result = new FileRepresentation(gpkger.getFile(), gpkger.getMediaType());
 		result.getDisposition().setType(Disposition.TYPE_ATTACHMENT);
 		
 		return result;

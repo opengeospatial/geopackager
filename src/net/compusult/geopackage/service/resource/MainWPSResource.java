@@ -19,6 +19,7 @@
 package net.compusult.geopackage.service.resource;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import net.compusult.geopackage.service.geopackager.GeoPackager;
@@ -32,6 +33,7 @@ import net.compusult.xml.XMLFetcher;
 import org.restlet.data.Form;
 import org.restlet.data.Status;
 import org.restlet.ext.xml.DomRepresentation;
+import org.restlet.representation.FileRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.Get;
@@ -209,22 +211,30 @@ public class MainWPSResource extends WPSResource {
 		 * Determine output characteristics.
 		 */
 		
+		boolean rawOutput = false;
+		List<Element> outputElementList;
+		boolean storeExecuteResponse = false;
+		boolean includeLineage = false;
+		
 		Element responseFormElement = domUtil.findFirstChildNamed(root, WPS_NS, "ResponseForm");
 		Element rawDataElement = domUtil.findFirstChildNamed(responseFormElement, WPS_NS, "RawDataOutput");
 		if (rawDataElement != null) {
-			return error(ExceptionCode.NoApplicableCode, "Output type 'RawDataOutput' is not supported yet", "RawDataOutput");
-		}
-		Element responseDocElement = domUtil.findFirstChildNamed(responseFormElement, WPS_NS, "ResponseDocument");
-		// responseDocElement cannot be null here
-		boolean storeExecuteResponse = Boolean.parseBoolean(responseDocElement.getAttribute("storeExecuteResponse"));
-		boolean includeLineage = Boolean.parseBoolean(responseDocElement.getAttribute("lineage"));
-//		boolean storeStatus = Boolean.parseBoolean(responseDocElement.getAttribute("status"));
-		
-		List<Element> outputElementList = domUtil.findChildrenNamed(responseDocElement, WPS_NS, "Output");
-		// One output: just the GeoPackage
-		// Two outputs: the GeoPackage and the updated ContextDoc
-		if (outputElementList.isEmpty() || outputElementList.size() > 2) {
-			return error(ExceptionCode.InvalidParameterValue, "Either one or two data outputs must be requested", "Output");
+			outputElementList = Collections.emptyList();
+			rawOutput = true;
+			
+		} else {
+			Element responseDocElement = domUtil.findFirstChildNamed(responseFormElement, WPS_NS, "ResponseDocument");
+			// responseDocElement cannot be null here
+			storeExecuteResponse = Boolean.parseBoolean(responseDocElement.getAttribute("storeExecuteResponse"));
+			includeLineage = Boolean.parseBoolean(responseDocElement.getAttribute("lineage"));
+	//		boolean storeStatus = Boolean.parseBoolean(responseDocElement.getAttribute("status"));
+			
+			outputElementList = domUtil.findChildrenNamed(responseDocElement, WPS_NS, "Output");
+			// One output: just the GeoPackage
+			// Two outputs: the GeoPackage and the updated ContextDoc
+			if (outputElementList.isEmpty() || outputElementList.size() > 2) {
+				return error(ExceptionCode.InvalidParameterValue, "Either one or two data outputs must be requested", "Output");
+			}
 		}
 
 		GeoPackager packager = (GeoPackager) applicationContext.getBean("geopackager", owsContext, passPhrase);
@@ -272,7 +282,11 @@ public class MainWPSResource extends WPSResource {
 		}
 		
 		try {
-			return generateResponseDoc(packager);
+			if (rawOutput) {
+				return new FileRepresentation(packager.getFile(), packager.getMediaType());
+			} else {
+				return generateResponseDoc(packager);
+			}
 		} catch (Exception e) {
 			return error(ExceptionCode.NoApplicableCode, e.getMessage());
 		}
@@ -281,6 +295,8 @@ public class MainWPSResource extends WPSResource {
 	private ContextDoc readContextDoc(Element inputElement) throws ResourceException {
 		Element feedElement;
 		String mimeType;
+		
+		String owsContextDocumentString = null;
 
 		// One or the other of Data or Reference will be present, because the doc is schema-valid.
 		Element refElement = domUtil.findFirstChildNamed(inputElement, WPS_NS, "Reference");
@@ -327,11 +343,18 @@ public class MainWPSResource extends WPSResource {
 			if (feedElement == null) {
 				feedElement = domUtil.findFirstChildNamed(complexDataElement, AtomCodec.ATOM_NS, "entry");
 			}
+			if (feedElement == null) {
+				owsContextDocumentString = domUtil.nodeTextContent(complexDataElement);
+			}
 		}
 		
 		try {
 			AtomCodec contextCodec = (AtomCodec) contextCodecFactory.createCodec(mimeType);
-			return contextCodec.decode(feedElement);
+			if (owsContextDocumentString != null) {
+				return contextCodec.decode(owsContextDocumentString);
+			} else {
+				return contextCodec.decode(feedElement);
+			}
 		} catch (EncodingException e) {
 			throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Failed to parse OWS Context document", e);
 		}

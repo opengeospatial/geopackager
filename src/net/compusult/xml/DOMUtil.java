@@ -123,7 +123,7 @@ public class DOMUtil {
 		StringBuilder buf = new StringBuilder();
 		NodeList children = node.getChildNodes();
 		for (int i = 0, n = children.getLength(); i < n; ++ i) {
-			if (children.item(i).getNodeType() == Node.TEXT_NODE) {
+			if (children.item(i).getNodeType() == Node.TEXT_NODE || children.item(i).getNodeType() == Node.CDATA_SECTION_NODE) {
 				if (buf.length() > 0) {
 					buf.append(' ');
 				}

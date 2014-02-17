@@ -35,6 +35,7 @@ import net.compusult.owscontext.codec.OWSContextCodec.EncodingException;
 import net.compusult.owscontext.codec.OWSContextCodecFactory;
 
 import org.apache.log4j.Logger;
+import org.restlet.data.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.Element;
 
@@ -98,6 +99,14 @@ public class GeoPackager implements Runnable {
 		this.currentStatus = ProcessingStatus.ACCEPTED;
 		this.progressTracker = null;
 		this.fileName = null;
+	}
+	
+	public File getFile() {
+		return new File(workDirectory, fileName);
+	}
+	
+	public MediaType getMediaType() {
+		return new MediaType(secure ? MIME_TYPE_SGPKG : MIME_TYPE_GPKG);
 	}
 
 	public void setStoreGeoPackageAsReference(boolean asReference) {

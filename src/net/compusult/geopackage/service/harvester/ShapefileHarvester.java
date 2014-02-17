@@ -424,6 +424,9 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 		if (srid.endsWith("WGS_1984")) {
 			srid = "4326";
 		}
+		if (srid.startsWith("EPSG:")) {
+			srid = srid.substring(5);
+		}
 		
 		return srid;
 	}

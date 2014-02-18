@@ -155,22 +155,22 @@ public class RealWMTS extends TileServer {
 
 	@Override
 	public double getMinX() {
-		return layerInfo.getBbox().getLlx();
+		return layerInfo.getBbox().llx;
 	}
 
 	@Override
 	public double getMinY() {
-		return layerInfo.getBbox().getLly();
+		return layerInfo.getBbox().lly;
 	}
 
 	@Override
 	public double getMaxX() {
-		return layerInfo.getBbox().getUrx();
+		return layerInfo.getBbox().urx;
 	}
 
 	@Override
 	public double getMaxY() {
-		return layerInfo.getBbox().getUry();
+		return layerInfo.getBbox().ury;
 	}
 
 	private WMTSTileMatrix getTileMatrix(String identifier) {

@@ -132,6 +132,10 @@ public class GeoPackage {
 		layers.remove(layerInfo);
 	}
 
+	public void updateLayerInTOC(LayerInformation layerInfo) throws GeoPackageException {
+		dao.updateLayerInTOC(layerInfo);
+	}
+
 	public void close() throws GeoPackageException {
 		dao.commit();
 		dao.close();
@@ -162,7 +166,7 @@ public class GeoPackage {
 	public void deleteFeatureLayer(LayerInformation layerInfo) throws GeoPackageException {
 		dao.deleteFeatureLayer(layerInfo);
 	}
-
+	
 	public void createTileMatrixZoomLevel(String tableName, int zoomScale,
 			int matrixWidth, int matrixHeight, int tileWidth, int tileHeight,
 			double xSize, double ySize) throws GeoPackageException {
@@ -225,8 +229,10 @@ public class GeoPackage {
 		}
 	}
 	
-	public void writeMetadataEntry(String scope, String standardUri, String mimeType, String content) throws GeoPackageException {
-		dao.writeMetadataEntry(scope, standardUri, mimeType, content);
+	public void writeMetadataEntry(String scope, String standardUri, String mimeType, String content,
+			String refScope, String tableName, String columnName) throws GeoPackageException {
+		
+		dao.writeMetadataEntry(scope, standardUri, mimeType, content, refScope, tableName, columnName);
 	}
 	
 }

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<feed xmlns="http://www.w3.org/2005/Atom" 
+	xmlns:dc="http://purl.org/dc/elements/1.1/" 
+	xmlns:georss="http://www.georss.org/georss" 
+	xmlns:gml="http://www.opengis.net/gml" 
+	xmlns:owc="http://www.opengis.net/owc/1.0" 
+	xmlns:awd="http://www.awila.co.uk/awila/2.0" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xml:lang="en">
+	<link rel="profile"
+		href="http://www.opengis.net/spec/owc-atom/1.0/req/core"
+		title="This file is compliant with version 1.0 of OGC Context"/>
+	<id>http://www.opengis.net/owc/1.0/examples/sewers_wfs_4326</id>
+	<title>Context document defining three feature types for WPS test</title>
+	<subtitle>Each Resource has an alternate Offering for the specified types</subtitle>
+	<updated>2014-02-01T10:30:00Z</updated>
+	<author>
+		<name>Mike Reynolds</name>
+		<email>mike.reynolds@aug-tech.co.uk</email>
+		<uri>http://www.awila.co.uk</uri>
+	</author>
+	<dc:publisher>Augmented Technologies Ltd.</dc:publisher>
+	<generator uri="http://www.awila.co.uk:8080/geoserver/wfs" version="4.0">
+	GeoServer Standard Implementation</generator>
+	<rights>Copyright (c) 2014.  Some rights reserved. This feed licensed under a Creative Commons Attribution 3.0 License.
+	</rights>
+	<georss:where>
+		<gml:Envelope>
+			<gml:lowerCorner>-2.153 52.263</gml:lowerCorner>
+			<gml:upperCorner>-2.147 52.270</gml:upperCorner>
+		</gml:Envelope>
+	</georss:where>
+	
+	<category term="owc" label="This file is compliant with version 1.0 of OGC Context"/>
+	<category term="maps" label="This file contains maps!"/>
+	
+<!-- 	
+	Although the same GeoPackage, each feature type is within its own Entry so we 
+	can specify individual styling and set a feature type description.
+	TODO: Extend style referencing to multiple types in one Entry.
+-->
+
+	<entry>
+		<id>http://www.awila.co.uk/gml3-wfs-shp/4326/</id>
+		<title>Foul Water Sewers (wfs)</title>
+		<content type="html">&lt;b&gt;Dirty Water&lt;/b&gt; sewers via WFS with alternate Shape file (as zip)</content>
+		<updated>2014-02-01T10:30:00Z</updated>
+		<link rel="via" type="application/vnd.ogc.wfs_xml" title="Original GetCapabilities document" href="http://www.awila.co.uk:8080/geoserver/wfs/?service=wfs&amp;request=getcapabilities"/>
+		<dc:publisher>Alt publisher - AugTech</dc:publisher>
+		<content type="html">This entry is being used to test online WFS retrieval with an &lt;br/&gt; alternate offering of a byRef Shape File.
+		</content>
+		<georss:where>
+			<gml:Polygon>
+				<gml:exterior>
+					<gml:LinearRing>
+						<gml:posList>-2.153 52.263 -2.147 52.263 -2.147 52.270 -2.153 52.270 -2.153 52.263</gml:posList>
+					</gml:LinearRing>
+				</gml:exterior>
+			</gml:Polygon>
+		</georss:where>
+		
+		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/wfs">
+			<owc:operation method="GET" code="GetCapabilities" href="http://www.awila.co.uk:8080/geoserver/wfs/?service=wfs&amp;request=getcapabilities"/>
+			<owc:operation method="GET" code="GetFeature" href="http://www.awila.co.uk:8080/geoserver/wfs/?service=wfs&amp;request=getfeature&amp;srsname=epsg:4326&amp;version=1.0.0&amp;typename=awd:foul_sewer"/>
+		</owc:offering>
+		<owc:offering code="http://www.opengis.net/spec/owc-atom/1.0/req/shapefile">
+			<owc:content type="application/x-shapefile" href="http://www.awila.co.uk/files/awd-foul_sewer.zip"/>
+		</owc:offering>
+	</entry>
+</feed>

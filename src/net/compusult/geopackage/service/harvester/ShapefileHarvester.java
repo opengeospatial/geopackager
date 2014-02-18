@@ -46,6 +46,7 @@ import net.compusult.geopackage.service.model.FeatureColumnInfo.ColumnType;
 import net.compusult.geopackage.service.model.GeoPackage;
 import net.compusult.geopackage.service.model.LayerInformation;
 import net.compusult.geopackage.service.model.LayerInformation.Type;
+import net.compusult.geopackage.service.model.Rectangle;
 import net.compusult.lang.Mutable;
 import net.compusult.owscontext.Content;
 import net.compusult.owscontext.Offering;
@@ -67,6 +68,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Required;
 import org.w3c.dom.Node;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 public class ShapefileHarvester extends AbstractFeatureHarvester implements InitializingBean {
@@ -129,6 +131,8 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 
 		String insertAsCRS;
 		CoordinateReferenceSystem sourceCRS;
+		
+		Rectangle actualBounds = new Rectangle(Double.MAX_VALUE, Double.MAX_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
 		
 		try {
 			/*
@@ -218,6 +222,22 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 									val = geomVal.toText();
 									geomType = geomVal.getGeometryType().toLowerCase();
 									isGeom = true;
+									
+									// Update the bounds of known data
+									Envelope env = geomVal.getEnvelopeInternal();
+									if (env.getMinX() < actualBounds.llx) {
+										actualBounds.llx = env.getMinX();
+									}
+									if (env.getMinY() < actualBounds.lly) {
+										actualBounds.lly = env.getMinY();
+									}
+									if (env.getMaxX() > actualBounds.urx) {
+										actualBounds.urx = env.getMaxX();
+									}
+									if (env.getMaxY() > actualBounds.ury) {
+										actualBounds.ury = env.getMaxY();
+									}
+									
 								} else if (prop.getValue() instanceof org.opengis.geometry.Geometry) {
 									org.opengis.geometry.Geometry geomVal = (org.opengis.geometry.Geometry) prop.getValue();
 									if (transformTo != null) {
@@ -226,6 +246,22 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 									val = geomVal.toString();
 									geomType = val.toLowerCase().replaceFirst("[^a-z].*", "");
 									isGeom = true;
+									
+									// Update the bounds of known data
+									org.opengis.geometry.Envelope env = geomVal.getEnvelope();
+									if (env.getMinimum(0) < actualBounds.llx) {
+										actualBounds.llx = env.getMinimum(0);
+									}
+									if (env.getMinimum(1) < actualBounds.lly) {
+										actualBounds.lly = env.getMinimum(1);
+									}
+									if (env.getMaximum(0) > actualBounds.urx) {
+										actualBounds.urx = env.getMaximum(0);
+									}
+									if (env.getMaximum(1) > actualBounds.ury) {
+										actualBounds.ury = env.getMaximum(1);
+									}
+
 								} else {
 									val = String.valueOf(prop.getValue());
 								}
@@ -270,6 +306,10 @@ public class ShapefileHarvester extends AbstractFeatureHarvester implements Init
 			gpkg.commit();
 			uncommittedFeatures = 0;
 		}
+		
+		layerInfo.setBoundsRectangle(actualBounds);
+		gpkg.updateLayerInTOC(layerInfo);
+		gpkg.commit();
 		
 		return buildOffering(tableName, Type.FEATURES);
 	}

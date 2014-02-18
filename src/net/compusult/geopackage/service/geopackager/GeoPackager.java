@@ -262,7 +262,7 @@ public class GeoPackager implements Runnable {
 		 */
 		OWSContextCodec codec = contextCodecFactory.createCodec(AtomCodec.MIME_TYPE);
 		String text = codec.encode(owsContext);
-		gpkg.writeMetadataEntry("series", "something here?", "application/atom+xml", text);
+		gpkg.writeMetadataEntry("undefined", "http://www.opengis.net/owc/1.0", "application/atom+xml", text, "geopackage", null, null);
 	}
 	
 	

@@ -400,10 +400,10 @@ public class GeoPackageDAO {
 			ps = getConnection().prepareStatement(sql);
 			ps.setString(1, layerInfo.getTheAbstract());
 			Rectangle r = layerInfo.getBoundsRectangle();
-			ps.setDouble(2, r.getLlx());
-			ps.setDouble(3, r.getLly());
-			ps.setDouble(4, r.getUrx());
-			ps.setDouble(5, r.getUry());
+			ps.setDouble(2, r.llx);
+			ps.setDouble(3, r.lly);
+			ps.setDouble(4, r.urx);
+			ps.setDouble(5, r.ury);
 			ps.setString(6, layerInfo.getTitle());
 			ps.setString(7, layerInfo.getType().getXmlType());
 			ps.setString(8, tableName);
@@ -478,9 +478,10 @@ public class GeoPackageDAO {
 		updateLayerInTOC(layerInfo);
 	}
 	
-	public void writeMetadataEntry(String scope, String standardUri, String mimeType, String content) throws GeoPackageException {
+	public void writeMetadataEntry(String scope, String standardUri, String mimeType, String content, String refScope, String tableName, String columnName) throws GeoPackageException {
 
 		PreparedStatement ps = null;
+		ResultSet rs = null;
 
 		try {
 			ps = getConnection().prepareStatement("INSERT INTO gpkg_metadata(md_scope,md_standard_uri,mime_type,metadata) values (?,?,?,?)");
@@ -489,11 +490,29 @@ public class GeoPackageDAO {
 			ps.setString(3, mimeType);
 			ps.setString(4, content);
 			ps.executeUpdate();
+			
+			ps.close();
+			
+			ps = getConnection().prepareStatement("select last_insert_rowid()");
+			rs = ps.executeQuery();
+			long metadataRowId;
+			if (rs.next()) {
+				metadataRowId = rs.getLong(1);
+			} else {
+				throw new GeoPackageException("Failed to insert new gpkg_metadata entry");
+			}
+			
+			ps = getConnection().prepareStatement("INSERT INTO gpkg_metadata_reference(reference_scope,table_name,column_name,md_file_id) values (?,?,?,?)");
+			ps.setString(1, refScope);
+			ps.setString(2, tableName);
+			ps.setString(3, columnName);
+			ps.setLong(4, metadataRowId);
+			ps.executeUpdate();			
 
 		} catch (SQLException e) {
 			throw new GeoPackageException("Failed to insert new gpkg_metadata entry", e);
 		} finally {
-			cleanUp(null, ps);
+			cleanUp(rs, ps);
 		}
 
 	}

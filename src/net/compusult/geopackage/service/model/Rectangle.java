@@ -20,7 +20,7 @@ package net.compusult.geopackage.service.model;
 
 public class Rectangle {
 
-	private double llx, lly, urx, ury;
+	public double llx, lly, urx, ury;
 
 	public Rectangle() {
 		this(-180, -90, 180, 90);
@@ -33,38 +33,6 @@ public class Rectangle {
 		this.ury = ury;
 	}
 
-	public double getLlx() {
-		return llx;
-	}
-
-	public void setLlx(double llx) {
-		this.llx = llx;
-	}
-
-	public double getLly() {
-		return lly;
-	}
-
-	public void setLly(double lly) {
-		this.lly = lly;
-	}
-
-	public double getUrx() {
-		return urx;
-	}
-
-	public void setUrx(double urx) {
-		this.urx = urx;
-	}
-
-	public double getUry() {
-		return ury;
-	}
-
-	public void setUry(double ury) {
-		this.ury = ury;
-	}
-	
 	public void setFrom(Rectangle r) {
 		this.llx = r.llx;
 		this.lly = r.lly;

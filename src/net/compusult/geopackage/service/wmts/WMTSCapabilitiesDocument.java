@@ -25,26 +25,50 @@ import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import net.compusult.geopackage.service.model.Rectangle;
 import net.compusult.xml.DOMUtil;
 
+import org.apache.log4j.Logger;
+import org.springframework.util.xml.SimpleNamespaceContext;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class WMTSCapabilitiesDocument {
-
-	private static final String WMTS_NS = "http://www.opengis.net/wmts/1.0";
-	private static final String OWS_NS = "http://www.opengis.net/ows/1.1";
 	
+	private static final Logger LOG = Logger.getLogger(WMTSCapabilitiesDocument.class);
+
+	private static final String WMTS_NS  = "http://www.opengis.net/wmts/1.0";
+	private static final String OWS_NS   = "http://www.opengis.net/ows/1.1";
+	private static final String XLINK_NS = "http://www.w3.org/1999/xlink";
+	
+	private static final SimpleNamespaceContext MY_NAMESPACE_CONTEXT = new SimpleNamespaceContext();
+    static {
+		Map<String, String> namespaces = new HashMap<String, String>();
+		namespaces.put("wmts",  WMTS_NS);
+		namespaces.put("ows",   OWS_NS);
+		namespaces.put("xlink", XLINK_NS);
+		
+		MY_NAMESPACE_CONTEXT.setBindings(namespaces);
+    }
+
 	private final Document capabilities;
 	private final DOMUtil domUtil;
+	private final XPathFactory xpathFactory;
 	
 	private final Element contents;
 	private final Map<String, Element> tileMatrixSets;
 	
-	public WMTSCapabilitiesDocument(String url) throws IOException, ParserConfigurationException, SAXException {
+	private String kvpGetTile;
+	
+	
+	public WMTSCapabilitiesDocument(String url) throws IOException, ParserConfigurationException, SAXException, XPathExpressionException {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		DocumentBuilder db = dbf.newDocumentBuilder();
@@ -61,6 +85,14 @@ public class WMTSCapabilitiesDocument {
 				tileMatrixSets.put(ident, tms);
 			}
 		}
+		
+		this.xpathFactory = XPathFactory.newInstance();
+		
+		XPath xpath = xpathFactory.newXPath();
+		xpath.setNamespaceContext(MY_NAMESPACE_CONTEXT);
+		this.kvpGetTile = (String)
+				xpath.evaluate("//ows:OperationsMetadata/ows:Operation[@name='GetTile']/ows:DCP/ows:HTTP/ows:Get/@xlink:href",
+						capabilities.getDocumentElement(), XPathConstants.STRING);
 	}
 	
 	public Element findLayer(String layerName) {
@@ -91,19 +123,34 @@ public class WMTSCapabilitiesDocument {
 				}
 			}
 			Element layerInfoElem = domUtil.findFirstChildNamed(layer, WMTS_NS, "ResourceURL");
+			WMTSLayerInfo layerInfo;
+			
 			if (layerInfoElem != null) {
-				WMTSLayerInfo layerInfo = new WMTSLayerInfo(
+				layerInfo = new WMTSLayerInfo(
 						defaultStyle,
 						domUtil.getAttributeValue(layerInfoElem, "format"),
-						domUtil.getAttributeValue(layerInfoElem, "template"));
-				getAdditionalTileMatrixSetInfo(findLinkedTileMatrixSet(layerName), layerInfo);
-				return layerInfo;
+						domUtil.getAttributeValue(layerInfoElem, "template"),
+						true);
+			} else {
+				layerInfo = new WMTSLayerInfo(
+						defaultStyle,
+						"image/png",		// FIXME
+						kvpGetTile,
+						false);				// not a restful service
 			}
+			
+			try {
+				getAdditionalTileMatrixSetInfo(layerName, layerInfo);
+			} catch (XPathExpressionException e) {
+				LOG.error("Failed to gather additional tile matrix set information", e);
+				return null;
+			}
+			return layerInfo;
 		}
 		return null;
 	}
 	
-	public String findLinkedTileMatrixSet(String layerName) {
+	private String findLinkedTileMatrixSet(String layerName) {
 		Element layer = findLayer(layerName);
 		if (layer != null) {
 			Element tmsLink = domUtil.findFirstChildNamed(layer, WMTS_NS, "TileMatrixSetLink");
@@ -118,27 +165,59 @@ public class WMTSCapabilitiesDocument {
 		return null;
 	}
 	
-	private void getAdditionalTileMatrixSetInfo(String tileMatrixSet, WMTSLayerInfo layerInfo) {
+	private void getAdditionalTileMatrixSetInfo(String layerName, WMTSLayerInfo layerInfo) throws XPathExpressionException {
+		String tileMatrixSet = findLinkedTileMatrixSet(layerName);
 		Element tms = tileMatrixSets.get(tileMatrixSet);
 		if (tms != null) {
 			Element title = domUtil.findFirstChildNamed(tms, OWS_NS, "Title");
-			layerInfo.setTitle(domUtil.nodeTextContent(title));
+			if (title == null) {
+				layerInfo.setTitle(tileMatrixSet);
+			} else {
+				layerInfo.setTitle(domUtil.nodeTextContent(title));
+			}
 			
 			Element crs = domUtil.findFirstChildNamed(tms, OWS_NS, "SupportedCRS");
 			layerInfo.setCrs(domUtil.nodeTextContent(crs));
 			
 			Element bboxElem = domUtil.findFirstChildNamed(tms, OWS_NS, "BoundingBox");
-			Element ll = domUtil.findFirstChildNamed(bboxElem, OWS_NS, "LowerCorner");
-			Element ur = domUtil.findFirstChildNamed(bboxElem, OWS_NS, "UpperCorner");
-			String lltext = domUtil.nodeTextContent(ll);
-			String urtext = domUtil.nodeTextContent(ur);
-			String[] llpieces = lltext.split("\\s+");
-			String[] urpieces = urtext.split("\\s+");
-			double llx = Double.parseDouble(llpieces[0]);
-			double lly = Double.parseDouble(llpieces[1]);
-			double urx = Double.parseDouble(urpieces[0]);
-			double ury = Double.parseDouble(urpieces[1]);
-			layerInfo.setBbox(new Rectangle(llx, lly, urx, ury));
+			if (bboxElem != null) {
+				Element ll = domUtil.findFirstChildNamed(bboxElem, OWS_NS, "LowerCorner");
+				Element ur = domUtil.findFirstChildNamed(bboxElem, OWS_NS, "UpperCorner");
+				String lltext = domUtil.nodeTextContent(ll);
+				String urtext = domUtil.nodeTextContent(ur);
+				String[] llpieces = lltext.split("\\s+");
+				String[] urpieces = urtext.split("\\s+");
+				double llx = Double.parseDouble(llpieces[0]);
+				double lly = Double.parseDouble(llpieces[1]);
+				double urx = Double.parseDouble(urpieces[0]);
+				double ury = Double.parseDouble(urpieces[1]);
+				layerInfo.setBbox(new Rectangle(llx, lly, urx, ury));
+			} else {
+				layerInfo.setBbox(new Rectangle(-180,-90,180,90));
+			}
+		}
+		
+		Element layer = findLayer(layerName);
+		XPath xpath = xpathFactory.newXPath();
+		xpath.setNamespaceContext(MY_NAMESPACE_CONTEXT);
+		NodeList limitNodes = (NodeList)
+				xpath.evaluate("./wmts:TileMatrixSetLink[wmts:TileMatrixSet/text() = '" + tileMatrixSet + "']/wmts:TileMatrixSetLimits/wmts:TileMatrixLimits",
+						layer, XPathConstants.NODESET);
+		
+		for (int limit = 0, nlimit = limitNodes.getLength(); limit < nlimit; ++ limit) {
+			Element thisNode = (Element) limitNodes.item(limit);
+			Element tileMatrix = domUtil.findFirstChildNamed(thisNode, WMTS_NS, "TileMatrix");
+			Element minTileRowElem = domUtil.findFirstChildNamed(thisNode, WMTS_NS, "MinTileRow");
+			Element maxTileRowElem = domUtil.findFirstChildNamed(thisNode, WMTS_NS, "MaxTileRow");
+			Element minTileColElem = domUtil.findFirstChildNamed(thisNode, WMTS_NS, "MinTileCol");
+			Element maxTileColElem = domUtil.findFirstChildNamed(thisNode, WMTS_NS, "MaxTileCol");
+			
+			RowColLimits rcl = new RowColLimits(
+					Integer.parseInt(domUtil.nodeTextContent(minTileRowElem)),
+					Integer.parseInt(domUtil.nodeTextContent(maxTileRowElem)),
+					Integer.parseInt(domUtil.nodeTextContent(minTileColElem)),
+					Integer.parseInt(domUtil.nodeTextContent(maxTileColElem)));
+			layerInfo.addLimits(tileMatrixSet, domUtil.nodeTextContent(tileMatrix), rcl);
 		}
 	}
 	
@@ -182,18 +261,22 @@ public class WMTSCapabilitiesDocument {
 				int tileWidth, int tileHeight, int matrixWidth, int matrixHeight);
 	}
 	
-	public static class WMTSLayerInfo {
+	public class WMTSLayerInfo {
 		private final String defaultStyle;
 		private final String format;
 		private final String template;
+		private final boolean restful;
 		private String title;
 		private String crs;
 		private Rectangle bbox;
+		private final Map<String, Map<String, RowColLimits>> limits;		// indexed by TileMatrixSet name, value is a map from TileMatrix name to the limits for that matrix
 		
-		public WMTSLayerInfo(String defaultStyle, String format, String template) {
+		public WMTSLayerInfo(String defaultStyle, String format, String template, boolean restful) {
 			this.defaultStyle = defaultStyle;
 			this.format = format;
 			this.template = template;
+			this.restful = restful;
+			this.limits = new HashMap<String, Map<String, RowColLimits>>();
 		}
 
 		public String getDefaultStyle() {
@@ -231,7 +314,55 @@ public class WMTSCapabilitiesDocument {
 		public void setBbox(Rectangle bbox) {
 			this.bbox = bbox;
 		}
+
+		public boolean isRestful() {
+			return restful;
+		}
 		
+		public void addLimits(String tileMatrixSet, String tileMatrix, RowColLimits lim) {
+			Map<String, RowColLimits> map = limits.get(tileMatrixSet);
+			if (map == null) {
+				map = new HashMap<String, RowColLimits>();
+				limits.put(tileMatrixSet, map);
+			}
+			map.put(tileMatrix, lim);
+		}
+
+		public Map<String, Map<String, RowColLimits>> getLimits() {
+			return limits;
+		}
+		
+	}
+	
+	public class RowColLimits {
+		private final int minRow;
+		private final int maxRow;
+		private final int minCol;
+		private final int maxCol;
+		
+		public RowColLimits(int minRow, int maxRow, int minCol, int maxCol) {
+			this.minRow = minRow;
+			this.maxRow = maxRow;
+			this.minCol = minCol;
+			this.maxCol = maxCol;
+		}
+
+		public int getMinRow() {
+			return minRow;
+		}
+
+		public int getMaxRow() {
+			return maxRow;
+		}
+
+		public int getMinCol() {
+			return minCol;
+		}
+
+		public int getMaxCol() {
+			return maxCol;
+		}
+
 	}
 	
 }

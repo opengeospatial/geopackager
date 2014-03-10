@@ -18,6 +18,7 @@
    
 package net.compusult.geopackage.service.model;
 
+
 public class WMTSTileMatrix {
 
 	private final String identifier;

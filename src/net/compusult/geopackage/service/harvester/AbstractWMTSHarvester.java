@@ -84,7 +84,6 @@ public abstract class AbstractWMTSHarvester extends AbstractHarvester {
 		this.params = params;
 		
 		// At each level Z the number of tiles is typically (2^Z)^2; i.e. 2^(2Z)
-		// However there may be WMTSs where some zoom scales are not complete.
 		this.tilesExpected = 0;
 		for (String z : wmts.getTileMatricesBetween(params.get("fromMatrix"), params.get("toMatrix"))) {
 			tilesExpected += wmts.getMatrixWidth(z) * wmts.getMatrixHeight(z);
@@ -109,11 +108,16 @@ public abstract class AbstractWMTSHarvester extends AbstractHarvester {
 		int layerIndex = wmts.findTileMatrixIndex(params.get("fromMatrix"));
 		for (String zoomScale : wmts.getTileMatricesBetween(params.get("fromMatrix"), params.get("toMatrix"))) {
 
+			int minCol = wmts.getTileColMin(zoomScale);
+			int maxCol = wmts.getTileColMax(zoomScale);
+			int minRow = wmts.getTileRowMin(zoomScale);
+			int maxRow = wmts.getTileRowMax(zoomScale);
+			
 			int matrixWidth = wmts.getMatrixWidth(zoomScale);
 			int matrixHeight = wmts.getMatrixHeight(zoomScale);
 
-			for (int tileCol = 0; tileCol < matrixWidth; tileCol++) {
-				for (int tileRow = 0; tileRow < matrixHeight; tileRow++) {
+			for (int tileCol = minCol; tileCol <= maxCol; tileCol++) {
+				for (int tileRow = minRow; tileRow <= maxRow; tileRow++) {
 					if (wmts.isTileAvailable(zoomScale, tileRow, tileCol) &&
 							overlapsClipRect(zoomScale, tileRow, tileCol, matrixWidth, matrixHeight)) {
 						
@@ -138,6 +142,9 @@ public abstract class AbstractWMTSHarvester extends AbstractHarvester {
 
 		try {
 			epsg4326 = CRS.decode("EPSG:4326");
+			if (!crs.startsWith("EPSG:")) {
+				crs = "EPSG:" + crs;
+			}
 			targetCRS = CRS.decode(crs);
 			
 			MathTransform transform = CRS.findMathTransform(epsg4326, targetCRS, true);

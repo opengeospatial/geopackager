@@ -28,8 +28,9 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactoryConfigurationException;
 
 import net.compusult.geopackage.service.model.WMTSTileMatrix;
-import net.compusult.geopackage.service.wmts.WMTSCapabilitiesDocument.WMTSLayerInfo;
+import net.compusult.geopackage.service.wmts.WMTSCapabilitiesDocument.RowColLimits;
 import net.compusult.geopackage.service.wmts.WMTSCapabilitiesDocument.TileMatrixSetScanner;
+import net.compusult.geopackage.service.wmts.WMTSCapabilitiesDocument.WMTSLayerInfo;
 
 import org.stringtemplate.v4.ST;
 import org.xml.sax.SAXException;
@@ -41,6 +42,7 @@ public class RealWMTS extends TileServer {
 	protected final String layerName;
 	protected final String tileMatrixSet;
 	protected final List<WMTSTileMatrix> tileMatrices;		// insertion order is important
+	private final Map<String, RowColLimits> limitMap;
 	protected final Map<String, String> params;
 
 	public RealWMTS(String capabilitiesUrl, Map<String, String> params) {
@@ -56,6 +58,11 @@ public class RealWMTS extends TileServer {
 			this.layerInfo = parseCapabilities();
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to parse capabilities document", e);
+		}
+		
+		this.limitMap = layerInfo.getLimits().get(tileMatrixSet);
+		if (limitMap == null) {
+			throw new IllegalStateException("No layer limits known for " + tileMatrixSet);
 		}
 	}
 	
@@ -88,7 +95,25 @@ public class RealWMTS extends TileServer {
 			style = "";
 		}
 		
-		ST template = new ST(layerInfo.getTemplate(), '{', '}');
+		ST template;
+		if (layerInfo.isRestful()) {
+			template = new ST(layerInfo.getTemplate(), '{', '}');
+			
+		} else {
+			StringBuilder url = new StringBuilder(layerInfo.getTemplate());
+			if (!layerInfo.getTemplate().endsWith("?")) {
+				url.append("?");
+			}
+			url.append("request=GetTile")
+				.append("&version=1.0.0")
+				.append("&service=WMTS")
+				.append("&layer={LayerName}&style={style}&tilematrixset={TileMatrixSet}")
+				.append("&tilematrix={TileMatrix}&tilerow={TileRow}&tilecol={TileCol}")
+				.append("&format={ImageFormat}");
+			
+			template = new ST(url.toString(), '{', '}');
+		}
+		
 		template.add("LayerName", layerName);
 		template.add("TileMatrixSet", tileMatrixSet);
 		template.add("TileMatrix", tileMatrix);
@@ -127,6 +152,50 @@ public class RealWMTS extends TileServer {
 		return tileMatrix.getTileHeight();
 	}
 	
+	@Override
+	public int getTileRowMin(String identifier) {
+		if (limitMap != null) {
+			RowColLimits limit = limitMap.get(identifier);
+			if (limit != null) {
+				return limit.getMinRow();
+			}
+		}
+		return super.getTileRowMin(identifier);
+	}
+
+	@Override
+	public int getTileRowMax(String identifier) {
+		if (limitMap != null) {
+			RowColLimits limit = limitMap.get(identifier);
+			if (limit != null) {
+				return limit.getMaxRow();
+			}
+		}
+		return super.getTileRowMax(identifier);
+	}
+
+	@Override
+	public int getTileColMin(String identifier) {
+		if (limitMap != null) {
+			RowColLimits limit = limitMap.get(identifier);
+			if (limit != null) {
+				return limit.getMinCol();
+			}
+		}
+		return super.getTileColMin(identifier);
+	}
+
+	@Override
+	public int getTileColMax(String identifier) {
+		if (limitMap != null) {
+			RowColLimits limit = limitMap.get(identifier);
+			if (limit != null) {
+				return limit.getMaxCol();
+			}
+		}
+		return super.getTileColMax(identifier);
+	}
+
 	@Override
 	public int getMatrixWidth(String identifier) {
 		WMTSTileMatrix tileMatrix = getTileMatrix(identifier);

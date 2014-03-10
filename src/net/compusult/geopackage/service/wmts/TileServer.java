@@ -78,10 +78,26 @@ public abstract class TileServer {
 	 */
 	public abstract double getPixelHeightInMeters(String identifier);
 	
+	public int getTileRowMin(String identifier) {
+		return 0;
+	}
+	
+	public int getTileRowMax(String identifier) {
+		return getMatrixHeight(identifier) - 1;
+	}
+	
 	/**
 	 * Returns the number of tiles across the whole matrix at the given zoom scale.
 	 */
 	public abstract int getMatrixWidth(String identifier);
+	
+	public int getTileColMin(String identifier) {
+		return 0;
+	}
+	
+	public int getTileColMax(String identifier) {
+		return getMatrixWidth(identifier) - 1;
+	}
 
 	/**
 	 * Returns the number of tiles vertically at the given zoom scale.

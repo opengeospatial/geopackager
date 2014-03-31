@@ -297,6 +297,8 @@ public class RealWMTS extends TileServer {
 		if (crs.startsWith("urn:ogc:def:crs:EPSG:")) {
 			String[] pieces = crs.split(":");
 			crs = pieces[pieces.length - 1];
+		} else if ("urn:ogc:def:crs:OGC:1.3:CRS84".equals(crs)) {
+			crs = "4326";
 		}
 		return crs;
 	}

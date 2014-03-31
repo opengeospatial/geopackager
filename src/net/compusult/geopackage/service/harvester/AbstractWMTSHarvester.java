@@ -142,7 +142,7 @@ public abstract class AbstractWMTSHarvester extends AbstractHarvester {
 
 		try {
 			epsg4326 = CRS.decode("EPSG:4326");
-			if (!crs.startsWith("EPSG:")) {
+			if (Character.isDigit(crs.charAt(0))) {
 				crs = "EPSG:" + crs;
 			}
 			targetCRS = CRS.decode(crs);

@@ -149,11 +149,11 @@ public abstract class AbstractWMTSHarvester extends AbstractHarvester {
 			
 			MathTransform transform = CRS.findMathTransform(epsg4326, targetCRS, true);
 			
-			DirectPosition2D from = new DirectPosition2D(clipRect.getMinY(), clipRect.getMinX());
+			DirectPosition2D from = new DirectPosition2D(clipRect.getMinX(), clipRect.getMinY());
 			DirectPosition2D toLL = new DirectPosition2D();
 			transform.transform(from, toLL);
 			
-			from = new DirectPosition2D(clipRect.getMaxY(), clipRect.getMaxX());
+			from = new DirectPosition2D(clipRect.getMaxX(), clipRect.getMaxY());
 			DirectPosition2D toUR = new DirectPosition2D();
 			transform.transform(from, toUR);
 			return new Envelope(toLL.x, toUR.x, toLL.y, toUR.y);
